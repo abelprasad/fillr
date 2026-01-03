@@ -94,6 +94,114 @@ const FIELD_PATTERNS = {
     'require-sponsorship', 'requiresponsorship', 'require_sponsorship',
     'sponsor', 'need-sponsorship', 'needsponsorship', 'sponsorship-required',
     'sponsorshiprequired', 'visa sponsorship', 'require sponsorship'
+  ],
+
+  // Additional common fields
+  middleName: [
+    'middlename', 'middle-name', 'middle_name', 'mname', 'middle name',
+    'middleinitial', 'middle-initial', 'middle_initial', 'mi'
+  ],
+
+  preferredName: [
+    'preferredname', 'preferred-name', 'preferred_name', 'nickname',
+    'preferred name', 'goes-by', 'goesby', 'goes by'
+  ],
+
+  country: [
+    'country', 'nation', 'nationality', 'country-of-residence',
+    'countryofresidence', 'residence-country'
+  ],
+
+  // Extended address fields
+  address2: [
+    'address2', 'address-2', 'address_2', 'addressline2', 'address-line-2',
+    'address line 2', 'apt', 'apartment', 'suite', 'unit', 'line2'
+  ],
+
+  // Job-specific fields
+  startDate: [
+    'startdate', 'start-date', 'start_date', 'availabledate', 'available-date',
+    'availability', 'start date', 'available date', 'when-can-you-start',
+    'earliest-start', 'earlieststart'
+  ],
+
+  salaryExpectation: [
+    'salary', 'salaryexpectation', 'salary-expectation', 'salary_expectation',
+    'expected-salary', 'expectedsalary', 'desired-salary', 'desiredsalary',
+    'salary expectation', 'expected salary', 'compensation', 'pay-expectation',
+    'salary-range', 'salaryrange'
+  ],
+
+  coverLetter: [
+    'coverletter', 'cover-letter', 'cover_letter', 'cover letter',
+    'letter', 'motivation', 'why-this-company', 'whythiscompany',
+    'why-us', 'whyus', 'additional-info', 'additionalinfo',
+    'tell-us-about-yourself', 'about-yourself'
+  ],
+
+  // Diversity fields (optional)
+  gender: [
+    'gender', 'sex', 'gender-identity', 'genderidentity'
+  ],
+
+  ethnicity: [
+    'ethnicity', 'race', 'ethnic-background', 'ethnicbackground',
+    'racial-background', 'racialbackground'
+  ],
+
+  veteranStatus: [
+    'veteran', 'veteran-status', 'veteranstatus', 'military',
+    'military-service', 'militaryservice', 'armed-forces'
+  ],
+
+  disabilityStatus: [
+    'disability', 'disability-status', 'disabilitystatus',
+    'disabled', 'accommodation', 'accommodations'
+  ],
+
+  // References
+  referenceName: [
+    'referencename', 'reference-name', 'reference_name', 'referee',
+    'reference name', 'ref-name', 'refname'
+  ],
+
+  referenceEmail: [
+    'referenceemail', 'reference-email', 'reference_email',
+    'reference email', 'ref-email', 'refemail'
+  ],
+
+  referencePhone: [
+    'referencephone', 'reference-phone', 'reference_phone',
+    'reference phone', 'ref-phone', 'refphone'
+  ],
+
+  // Social media (additional)
+  twitter: [
+    'twitter', 'twitter-url', 'twitterurl', 'twitter_url',
+    'twitter-handle', 'twitterhandle', 'twitter handle'
+  ],
+
+  // Education details
+  degreeType: [
+    'degreetype', 'degree-type', 'degree_type', 'degree type',
+    'level-of-education', 'levelofeducation', 'education-level'
+  ],
+
+  // Work experience
+  currentCompany: [
+    'currentcompany', 'current-company', 'current_company',
+    'current company', 'employer', 'current-employer', 'currentemployer'
+  ],
+
+  currentTitle: [
+    'currenttitle', 'current-title', 'current_title', 'current title',
+    'job-title', 'jobtitle', 'position', 'current-position', 'currentposition'
+  ],
+
+  yearsOfExperience: [
+    'experience', 'years-experience', 'yearsexperience', 'years_experience',
+    'years-of-experience', 'yearsofexperience', 'work-experience',
+    'total-experience'
   ]
 };
 

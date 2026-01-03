@@ -19,11 +19,13 @@ const weekAppsSpan = document.getElementById('weekApps');
 
 // Profile field IDs
 const profileFields = [
-  'firstName', 'lastName', 'email', 'phone',
-  'street', 'city', 'state', 'zip',
+  'firstName', 'middleName', 'lastName', 'email', 'phone',
+  'street', 'address2', 'city', 'state', 'zip', 'country',
   'linkedin', 'github', 'portfolio',
   'university', 'major', 'graduationDate', 'gpa',
-  'workAuthorization', 'sponsorship'
+  'workAuthorization', 'sponsorship',
+  'currentCompany', 'currentTitle', 'yearsOfExperience',
+  'startDate', 'salaryExpectation', 'coverLetter'
 ];
 
 // Load profile on popup open

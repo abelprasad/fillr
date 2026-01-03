@@ -40,24 +40,52 @@ function fillFormFields(profile) {
     detectedFields.forEach(({ element, fieldType }) => {
       const value = profile[fieldType];
 
-      if (value && !element.value) { // Only fill if empty
-        // Handle different input types
-        if (element.tagName === 'SELECT') {
-          // Try to match select option by value or text
-          const matchedOption = findMatchingOption(element, value);
-          if (matchedOption) {
-            element.value = matchedOption.value;
-            triggerChangeEvent(element);
-            highlightField(element);
-            filledCount++;
-          }
-        } else {
-          // Regular input or textarea
-          element.value = value;
+      if (!value) return; // Skip if no value in profile
+
+      const inputType = element.type?.toLowerCase();
+
+      // Handle different input types
+      if (element.tagName === 'SELECT') {
+        // Try to match select option by value or text
+        const matchedOption = findMatchingOption(element, value);
+        if (matchedOption) {
+          element.value = matchedOption.value;
           triggerChangeEvent(element);
           highlightField(element);
           filledCount++;
         }
+      } else if (inputType === 'checkbox') {
+        // Check checkbox if value is truthy or matches certain strings
+        const shouldCheck = value === true ||
+                           value === 'true' ||
+                           value === 'yes' ||
+                           value === '1' ||
+                           value === 'on';
+        if (shouldCheck && !element.checked) {
+          element.checked = true;
+          triggerChangeEvent(element);
+          highlightField(element);
+          filledCount++;
+        }
+      } else if (inputType === 'radio') {
+        // Select radio button if value matches
+        const radioGroup = document.querySelectorAll(
+          `input[type="radio"][name="${element.name}"]`
+        );
+        radioGroup.forEach(radio => {
+          if (radio.value.toLowerCase() === value.toLowerCase() && !radio.checked) {
+            radio.checked = true;
+            triggerChangeEvent(radio);
+            highlightField(radio);
+            filledCount++;
+          }
+        });
+      } else if (!element.value) {
+        // Regular input or textarea - only fill if empty
+        element.value = value;
+        triggerChangeEvent(element);
+        highlightField(element);
+        filledCount++;
       }
     });
 

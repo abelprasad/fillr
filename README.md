@@ -63,10 +63,11 @@ Fillr stores the following information:
 
 ### Personal Information
 - First Name
+- Middle Name
 - Last Name
 - Email
 - Phone Number
-- Address (Street, City, State, ZIP)
+- Address (Street, Apt/Suite, City, State, ZIP, Country)
 
 ### Professional Links
 - LinkedIn URL
@@ -82,6 +83,16 @@ Fillr stores the following information:
 ### Work Authorization
 - Work Authorization Status
 - Sponsorship Requirement
+
+### Work Experience
+- Current/Most Recent Company
+- Current/Most Recent Title
+- Years of Experience
+
+### Job Application Details
+- Earliest Start Date
+- Salary Expectation
+- Cover Letter / Why This Company
 
 ## Technical Architecture
 
