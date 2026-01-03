@@ -16,7 +16,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 /**
  * Fill form fields with profile data
  */
-function fillFormFields(profile) {
+async function fillFormFields(profile) {
   try {
     if (!profile || Object.keys(profile).length === 0) {
       return {
@@ -37,13 +37,22 @@ function fillFormFields(profile) {
       };
     }
 
+    // Get theme preference once
+    let isDark = false;
+    try {
+      const result = await chrome.storage.sync.get('theme');
+      isDark = result.theme === 'dark';
+    } catch (error) {
+      console.log('Could not get theme preference');
+    }
+
     let filledCount = 0;
 
     // Fill each detected field with corresponding profile data
-    detectedFields.forEach(({ element, fieldType }) => {
+    for (const { element, fieldType } of detectedFields) {
       const value = profile[fieldType];
 
-      if (!value) return; // Skip if no value in profile
+      if (!value) continue; // Skip if no value in profile
 
       const inputType = element.type?.toLowerCase();
 
@@ -54,7 +63,7 @@ function fillFormFields(profile) {
         if (matchedOption) {
           element.value = matchedOption.value;
           triggerChangeEvent(element);
-          highlightField(element);
+          highlightFieldSync(element, isDark);
           filledCount++;
         }
       } else if (inputType === 'checkbox') {
@@ -67,7 +76,7 @@ function fillFormFields(profile) {
         if (shouldCheck && !element.checked) {
           element.checked = true;
           triggerChangeEvent(element);
-          highlightField(element);
+          highlightFieldSync(element, isDark);
           filledCount++;
         }
       } else if (inputType === 'radio') {
@@ -79,7 +88,7 @@ function fillFormFields(profile) {
           if (radio.value.toLowerCase() === value.toLowerCase() && !radio.checked) {
             radio.checked = true;
             triggerChangeEvent(radio);
-            highlightField(radio);
+            highlightFieldSync(radio, isDark);
             filledCount++;
           }
         });
@@ -87,10 +96,10 @@ function fillFormFields(profile) {
         // Regular input or textarea - only fill if empty
         element.value = value;
         triggerChangeEvent(element);
-        highlightField(element);
+        highlightFieldSync(element, isDark);
         filledCount++;
       }
-    });
+    }
 
     return {
       success: true,
@@ -159,19 +168,19 @@ function triggerChangeEvent(element) {
 }
 
 /**
- * Highlight a filled field with green border animation
+ * Highlight a filled field with green border animation (synchronous version)
  */
-function highlightField(element) {
+function highlightFieldSync(element, isDark = false) {
   const originalBorder = element.style.border;
   const originalOutline = element.style.outline;
   const originalTransition = element.style.transition;
   const originalBackground = element.style.backgroundColor;
 
-  // Apply highlight with animation
+  // Apply highlight with animation (with theme support)
   element.style.transition = 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
   element.style.border = '3px solid #10b981';
   element.style.outline = 'none';
-  element.style.backgroundColor = '#ecfdf5';
+  element.style.backgroundColor = isDark ? 'rgba(16, 185, 129, 0.15)' : '#ecfdf5';
   element.style.boxShadow = '0 0 0 3px rgba(16, 185, 129, 0.2)';
 
   // Remove highlight after animation
@@ -187,7 +196,7 @@ function highlightField(element) {
 /**
  * Preview form fields that will be filled (without actually filling)
  */
-function previewFormFields(profile) {
+async function previewFormFields(profile) {
   try {
     if (!profile || Object.keys(profile).length === 0) {
       return {
@@ -213,17 +222,26 @@ function previewFormFields(profile) {
 
     let detectedCount = 0;
 
+    // Get theme preference once for all fields
+    let isDark = false;
+    try {
+      const result = await chrome.storage.sync.get('theme');
+      isDark = result.theme === 'dark';
+    } catch (error) {
+      console.log('Could not get theme preference');
+    }
+
     // Highlight each detected field
-    detectedFields.forEach(({ element, fieldType }) => {
+    for (const { element, fieldType } of detectedFields) {
       const value = profile[fieldType];
       if (value) {
-        highlightPreviewField(element, fieldType, value);
+        await highlightPreviewFieldSync(element, fieldType, value, isDark);
         detectedCount++;
       }
-    });
+    }
 
     // Add clear preview button
-    showClearPreviewButton();
+    await showClearPreviewButton();
 
     return {
       success: true,
@@ -242,9 +260,9 @@ function previewFormFields(profile) {
 }
 
 /**
- * Highlight a field in preview mode
+ * Highlight a field in preview mode (synchronous version)
  */
-function highlightPreviewField(element, fieldType, value) {
+function highlightPreviewFieldSync(element, fieldType, value, isDark = false) {
   // Add preview class
   element.classList.add('fillr-preview-highlight');
 
@@ -253,11 +271,11 @@ function highlightPreviewField(element, fieldType, value) {
   const originalBackground = element.style.backgroundColor;
   const originalBoxShadow = element.style.boxShadow;
 
-  // Apply preview highlight
+  // Apply preview highlight (with theme support)
   element.style.border = '3px solid #8b5cf6';
-  element.style.backgroundColor = '#faf5ff';
+  element.style.backgroundColor = isDark ? 'rgba(139, 92, 246, 0.15)' : '#faf5ff';
   element.style.boxShadow = '0 0 0 3px rgba(139, 92, 246, 0.2)';
-  element.style.transition = 'all 0.3s ease';
+  element.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
 
   // Add tooltip showing what will be filled
   const tooltip = document.createElement('div');
@@ -265,21 +283,22 @@ function highlightPreviewField(element, fieldType, value) {
   tooltip.textContent = `${fieldType}: ${truncateValue(value)}`;
   tooltip.style.cssText = `
     position: absolute;
-    background: #8b5cf6;
+    background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
     color: white;
-    padding: 4px 8px;
-    border-radius: 4px;
+    padding: 6px 12px;
+    border-radius: 8px;
     font-size: 11px;
     font-weight: 600;
     white-space: nowrap;
     z-index: 999999;
     pointer-events: none;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    box-shadow: ${isDark ? '0 4px 12px rgba(0, 0, 0, 0.5)' : '0 2px 8px rgba(139, 92, 246, 0.3)'};
+    backdrop-filter: blur(10px);
   `;
 
   // Position tooltip
   const rect = element.getBoundingClientRect();
-  tooltip.style.top = `${window.scrollY + rect.top - 30}px`;
+  tooltip.style.top = `${window.scrollY + rect.top - 35}px`;
   tooltip.style.left = `${window.scrollX + rect.left}px`;
 
   document.body.appendChild(tooltip);
@@ -321,7 +340,16 @@ function clearPreviewHighlights() {
 /**
  * Show button to clear preview
  */
-function showClearPreviewButton() {
+async function showClearPreviewButton() {
+  // Get theme preference
+  let isDark = false;
+  try {
+    const result = await chrome.storage.sync.get('theme');
+    isDark = result.theme === 'dark';
+  } catch (error) {
+    console.log('Could not get theme preference');
+  }
+
   // Remove existing button if any
   const existing = document.getElementById('fillr-clear-preview');
   if (existing) {
@@ -339,23 +367,24 @@ function showClearPreviewButton() {
     background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
     color: white;
     border: none;
-    border-radius: 8px;
+    border-radius: 12px;
     font-size: 14px;
     font-weight: 600;
     cursor: pointer;
     z-index: 999999;
-    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
-    transition: all 0.3s ease;
+    box-shadow: ${isDark ? '0 8px 24px rgba(0, 0, 0, 0.5)' : '0 4px 12px rgba(139, 92, 246, 0.4)'};
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    backdrop-filter: blur(10px);
   `;
 
   button.addEventListener('mouseenter', () => {
     button.style.transform = 'translateY(-2px)';
-    button.style.boxShadow = '0 6px 16px rgba(139, 92, 246, 0.5)';
+    button.style.boxShadow = isDark ? '0 12px 28px rgba(0, 0, 0, 0.6)' : '0 6px 16px rgba(139, 92, 246, 0.5)';
   });
 
   button.addEventListener('mouseleave', () => {
     button.style.transform = 'translateY(0)';
-    button.style.boxShadow = '0 4px 12px rgba(139, 92, 246, 0.4)';
+    button.style.boxShadow = isDark ? '0 8px 24px rgba(0, 0, 0, 0.5)' : '0 4px 12px rgba(139, 92, 246, 0.4)';
   });
 
   button.addEventListener('click', () => {
@@ -451,11 +480,20 @@ document.addEventListener('keydown', async (event) => {
 });
 
 // Show notification on page
-function showNotification(message, type = 'success') {
+async function showNotification(message, type = 'success') {
   // Remove existing notification if any
   const existing = document.getElementById('fillr-notification');
   if (existing) {
     existing.remove();
+  }
+
+  // Get theme preference
+  let isDark = false;
+  try {
+    const result = await chrome.storage.sync.get('theme');
+    isDark = result.theme === 'dark';
+  } catch (error) {
+    console.log('Could not get theme preference');
   }
 
   // Create notification element
@@ -463,24 +501,25 @@ function showNotification(message, type = 'success') {
   notification.id = 'fillr-notification';
   notification.textContent = message;
 
-  // Style the notification
+  // Base styles
   Object.assign(notification.style, {
     position: 'fixed',
     top: '20px',
     right: '20px',
     padding: '12px 20px',
-    borderRadius: '6px',
+    borderRadius: '12px',
     fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
     fontSize: '14px',
-    fontWeight: '500',
+    fontWeight: '600',
     zIndex: '999999',
-    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-    transition: 'all 0.3s ease',
+    boxShadow: isDark ? '0 8px 24px rgba(0, 0, 0, 0.4)' : '0 4px 16px rgba(0, 0, 0, 0.15)',
+    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
     opacity: '0',
-    transform: 'translateY(-10px)'
+    transform: 'translateY(-10px)',
+    backdropFilter: 'blur(10px)'
   });
 
-  // Set color based on type
+  // Set color based on type and theme
   if (type === 'success') {
     notification.style.backgroundColor = '#10b981';
     notification.style.color = 'white';

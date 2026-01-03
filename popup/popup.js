@@ -32,6 +32,7 @@ const profileFields = [
 document.addEventListener('DOMContentLoaded', () => {
   loadProfile();
   loadHistory();
+  loadTheme();
 });
 
 // Event listeners
@@ -40,6 +41,7 @@ document.getElementById('previewBtn').addEventListener('click', previewForm);
 toggleFormBtn.addEventListener('click', toggleProfileForm);
 profileForm.addEventListener('submit', saveProfile);
 cancelBtn.addEventListener('click', toggleProfileForm);
+document.getElementById('darkModeToggle').addEventListener('click', toggleDarkMode);
 
 // Tab switching
 tabBtns.forEach(btn => {
@@ -294,6 +296,17 @@ async function logApplication(url, title, fieldsCount) {
     const result = await chrome.storage.sync.get('history');
     const history = result.history || [];
 
+    // Check if this URL was already logged recently (within last 5 minutes)
+    const fiveMinutesAgo = Date.now() - (5 * 60 * 1000);
+    const recentDuplicate = history.find(entry =>
+      entry.url === url && entry.timestamp >= fiveMinutesAgo
+    );
+
+    if (recentDuplicate) {
+      console.log('Skipping duplicate entry for same URL within 5 minutes');
+      return;
+    }
+
     // Extract company name from title (simple heuristic)
     const company = extractCompanyName(title);
 
@@ -515,6 +528,51 @@ function escapeHtml(text) {
   const div = document.createElement('div');
   div.textContent = text;
   return div.innerHTML;
+}
+
+// ===== DARK MODE FUNCTIONS =====
+
+// Load theme from storage
+async function loadTheme() {
+  try {
+    const result = await chrome.storage.sync.get('theme');
+    const theme = result.theme || 'light';
+    document.body.setAttribute('data-theme', theme);
+    updateToggleIcon(theme);
+  } catch (error) {
+    console.error('Error loading theme:', error);
+    // Default to light mode
+    document.body.setAttribute('data-theme', 'light');
+    updateToggleIcon('light');
+  }
+}
+
+// Toggle between dark and light mode
+async function toggleDarkMode() {
+  try {
+    const currentTheme = document.body.getAttribute('data-theme') || 'light';
+    const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+
+    // Apply theme with smooth transition
+    document.body.setAttribute('data-theme', newTheme);
+
+    // Save to storage
+    await chrome.storage.sync.set({ theme: newTheme });
+
+    // Update toggle icon
+    updateToggleIcon(newTheme);
+  } catch (error) {
+    console.error('Error toggling theme:', error);
+  }
+}
+
+// Update toggle button icon based on current theme
+function updateToggleIcon(theme) {
+  const icon = document.querySelector('.toggle-icon');
+  if (icon) {
+    // Show moon for light mode (click to go dark), sun for dark mode (click to go light)
+    icon.textContent = theme === 'dark' ? '☀️' : '🌙';
+  }
 }
 
 // ===== VALIDATION FUNCTIONS =====
