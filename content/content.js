@@ -59,8 +59,13 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true; // Keep message channel open for async response
   } else if (request.action === 'fillrUp') {
     // AI answer generation for right-clicked field
+    console.log('🎯 Fillr Up triggered!');
     fillrUpAnswer().then(result => {
+      console.log('✅ Fillr Up result:', result);
       sendResponse(result);
+    }).catch(error => {
+      console.error('❌ Fillr Up error:', error);
+      sendResponse({ success: false, message: error.message });
     });
     return true; // Keep message channel open for async response
   }
@@ -624,14 +629,19 @@ console.log('✓ Fillr extension loaded | Alt+F to fill | Alt+P to preview | Rig
  * Triggered by right-click context menu "Fillr Up"
  */
 async function fillrUpAnswer() {
+  console.log('🚀 fillrUpAnswer() called');
+  console.log('📍 lastFocusedElement:', lastFocusedElement);
+
   try {
     // Check if we have a target element
     if (!lastFocusedElement) {
+      console.warn('⚠️ No lastFocusedElement found');
       showNotification('Please right-click on a text field to use Fillr Up', 'warning');
       return { success: false, message: 'No target element' };
     }
 
     const targetElement = lastFocusedElement;
+    console.log('✓ Target element:', targetElement.tagName, targetElement.name || targetElement.id);
 
     // Extract question text from the field's context
     const questionText = extractQuestionText(targetElement);
