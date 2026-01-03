@@ -402,9 +402,9 @@ async function logApplication(url, title, fieldsCount) {
     const trimmedHistory = history.slice(0, HISTORY_MAX_ENTRIES);
 
     // Save to storage
-    const result = await safeSyncStorageSet({ history: trimmedHistory });
-    if (!result.success && result.error) {
-      console.error('Error saving history:', result.error);
+    const saveResult = await safeSyncStorageSet({ history: trimmedHistory });
+    if (!saveResult.success && saveResult.error) {
+      console.error('Error saving history:', saveResult.error);
     }
 
     // Reload history display
