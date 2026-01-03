@@ -10,6 +10,14 @@ let themeCache = null;
 let themeCacheTime = 0;
 const THEME_CACHE_DURATION_MS = 60000; // Cache for 1 minute
 
+// Track last focused/right-clicked element for context menu
+let lastFocusedElement = null;
+document.addEventListener('contextmenu', (e) => {
+  if (e.target.matches('input, textarea')) {
+    lastFocusedElement = e.target;
+  }
+}, true);
+
 /**
  * Get theme preference with caching
  */
@@ -48,6 +56,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   } else if (request.action === 'scrapeJobDescription') {
     const result = scrapeJobDescription();
     sendResponse(result);
+    return true; // Keep message channel open for async response
+  } else if (request.action === 'fillrUp') {
+    // AI answer generation for right-clicked field
+    fillrUpAnswer().then(result => {
+      sendResponse(result);
+    });
     return true; // Keep message channel open for async response
   }
 });
@@ -603,7 +617,221 @@ async function showNotification(message, type = 'success') {
 }
 
 // Log that content script is loaded
-console.log('✓ Fillr extension loaded | Alt+F to fill | Alt+P to preview');
+console.log('✓ Fillr extension loaded | Alt+F to fill | Alt+P to preview | Right-click → Fillr Up');
+
+/**
+ * AI-powered answer generation for custom questions
+ * Triggered by right-click context menu "Fillr Up"
+ */
+async function fillrUpAnswer() {
+  try {
+    // Check if we have a target element
+    if (!lastFocusedElement) {
+      showNotification('Please right-click on a text field to use Fillr Up', 'warning');
+      return { success: false, message: 'No target element' };
+    }
+
+    const targetElement = lastFocusedElement;
+
+    // Extract question text from the field's context
+    const questionText = extractQuestionText(targetElement);
+    if (!questionText) {
+      showNotification('Could not detect question text for this field', 'warning');
+      return { success: false, message: 'No question detected' };
+    }
+
+    // Get user profile and API key
+    const result = await chrome.storage.sync.get(['profile', 'groqApiKey']);
+    const profile = result.profile;
+    const apiKey = result.groqApiKey;
+
+    if (!apiKey) {
+      showNotification('Please set up your Groq API key in Settings first', 'warning');
+      return { success: false, message: 'No API key' };
+    }
+
+    if (!profile || Object.keys(profile).length === 0) {
+      showNotification('Please create your profile first', 'warning');
+      return { success: false, message: 'No profile' };
+    }
+
+    // Show loading state
+    const originalValue = targetElement.value;
+    const originalPlaceholder = targetElement.placeholder;
+    targetElement.placeholder = '✨ Generating answer with AI...';
+    targetElement.disabled = true;
+
+    // Get job context from page
+    const jobContext = scrapeJobDescription();
+    const companyName = jobContext.success ? jobContext.data.companyName : 'the company';
+    const jobTitle = jobContext.success ? jobContext.data.jobTitle : 'this position';
+
+    // Generate AI answer
+    try {
+      const answer = await generateQuestionAnswer(
+        apiKey,
+        profile,
+        questionText,
+        companyName,
+        jobTitle
+      );
+
+      // Fill the field with the answer
+      targetElement.value = answer;
+      targetElement.disabled = false;
+      targetElement.placeholder = originalPlaceholder;
+
+      // Trigger change events
+      triggerChangeEvent(targetElement);
+
+      // Highlight the field
+      const isDark = await getTheme();
+      highlightFieldSync(targetElement, isDark);
+
+      showNotification('✨ Answer generated successfully!', 'success');
+
+      return { success: true, message: 'Answer generated' };
+
+    } catch (error) {
+      console.error('Error generating answer:', error);
+      targetElement.value = originalValue;
+      targetElement.disabled = false;
+      targetElement.placeholder = originalPlaceholder;
+      showNotification('Error generating answer: ' + error.message, 'error');
+      return { success: false, message: error.message };
+    }
+
+  } catch (error) {
+    console.error('Error in fillrUpAnswer:', error);
+    showNotification('Error: ' + error.message, 'error');
+    return { success: false, message: error.message };
+  }
+}
+
+/**
+ * Extract question text from field's surrounding context
+ */
+function extractQuestionText(element) {
+  let questionText = '';
+
+  // Priority 1: Label (by 'for' attribute)
+  if (element.id) {
+    const label = document.querySelector(`label[for="${element.id}"]`);
+    if (label && label.textContent.trim()) {
+      questionText = label.textContent.trim();
+    }
+  }
+
+  // Priority 2: Parent label
+  if (!questionText) {
+    const parentLabel = element.closest('label');
+    if (parentLabel) {
+      questionText = parentLabel.textContent.trim();
+    }
+  }
+
+  // Priority 3: aria-label
+  if (!questionText && element.getAttribute('aria-label')) {
+    questionText = element.getAttribute('aria-label').trim();
+  }
+
+  // Priority 4: Placeholder
+  if (!questionText && element.placeholder) {
+    questionText = element.placeholder.trim();
+  }
+
+  // Priority 5: Name attribute (clean up underscores/dashes)
+  if (!questionText && element.name) {
+    questionText = element.name
+      .replace(/[_-]/g, ' ')
+      .replace(/([a-z])([A-Z])/g, '$1 $2')
+      .trim();
+  }
+
+  // Priority 6: Previous sibling text
+  if (!questionText) {
+    let sibling = element.previousElementSibling;
+    while (sibling && !questionText) {
+      const text = sibling.textContent.trim();
+      if (text && text.length < 200) {
+        questionText = text;
+        break;
+      }
+      sibling = sibling.previousElementSibling;
+    }
+  }
+
+  return questionText;
+}
+
+/**
+ * Call Groq API to generate answer for a custom question
+ */
+async function generateQuestionAnswer(apiKey, profile, questionText, companyName, jobTitle) {
+  const prompt = `You are helping a job applicant answer an application question.
+
+APPLICANT PROFILE:
+- Name: ${profile.firstName || ''} ${profile.lastName || ''}
+- Email: ${profile.email || ''}
+- University: ${profile.university || 'Not specified'}
+- Major: ${profile.major || 'Not specified'}
+- GPA: ${profile.gpa || 'Not specified'}
+- Current/Recent Company: ${profile.currentCompany || 'Not specified'}
+- Current/Recent Title: ${profile.currentTitle || 'Not specified'}
+- Years of Experience: ${profile.yearsOfExperience || 'Not specified'}
+- LinkedIn: ${profile.linkedin || 'Not specified'}
+- GitHub: ${profile.github || 'Not specified'}
+- Work Authorization: ${profile.workAuthorization || 'Not specified'}
+
+JOB DETAILS:
+- Company: ${companyName}
+- Position: ${jobTitle}
+
+QUESTION TO ANSWER:
+"${questionText}"
+
+Write a professional, compelling answer to this question. The answer should:
+1. Be concise (2-4 sentences, 50-150 words)
+2. Highlight relevant skills and experiences from the applicant's profile
+3. Show genuine enthusiasm for the role and company
+4. Be specific and personalized (not generic)
+5. Use first person ("I", "my")
+
+Write ONLY the answer, no preamble or explanation:`;
+
+  const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`
+    },
+    body: JSON.stringify({
+      model: 'llama-3.3-70b-versatile',
+      messages: [
+        {
+          role: 'system',
+          content: 'You are a professional career coach helping with job applications. Write concise, personalized answers.'
+        },
+        {
+          role: 'user',
+          content: prompt
+        }
+      ],
+      temperature: 0.7,
+      max_tokens: 300
+    })
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error?.message || 'API request failed');
+  }
+
+  const data = await response.json();
+  const answer = data.choices[0].message.content.trim();
+
+  return answer;
+}
 
 /**
  * Scrape job description from the current page
