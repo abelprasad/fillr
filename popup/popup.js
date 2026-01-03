@@ -36,6 +36,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Event listeners
 fillFormBtn.addEventListener('click', fillForm);
+document.getElementById('previewBtn').addEventListener('click', previewForm);
 toggleFormBtn.addEventListener('click', toggleProfileForm);
 profileForm.addEventListener('submit', saveProfile);
 cancelBtn.addEventListener('click', toggleProfileForm);
@@ -139,11 +140,21 @@ async function fillForm() {
       return;
     }
 
+    // Show loading state
+    const fillBtn = document.getElementById('fillFormBtn');
+    const originalText = fillBtn.innerHTML;
+    fillBtn.innerHTML = '<span class="btn-spinner">⏳</span> Filling...';
+    fillBtn.disabled = true;
+
     // Send message to content script
     chrome.tabs.sendMessage(
       tab.id,
       { action: 'fillForm', profile },
       (response) => {
+        // Restore button
+        fillBtn.innerHTML = originalText;
+        fillBtn.disabled = false;
+
         if (chrome.runtime.lastError) {
           console.error('Error:', chrome.runtime.lastError);
           showMessage('Unable to fill form on this page', 'error');
@@ -153,7 +164,7 @@ async function fillForm() {
         if (response && response.success) {
           const count = response.fieldsFilledCount || 0;
           if (count > 0) {
-            showMessage(`Successfully filled ${count} field${count !== 1 ? 's' : ''}`, 'success');
+            showMessage(`✓ Successfully filled ${count} field${count !== 1 ? 's' : ''}!`, 'success');
 
             // Log application to history
             logApplication(tab.url, tab.title, count);
@@ -168,6 +179,54 @@ async function fillForm() {
   } catch (error) {
     console.error('Error filling form:', error);
     showMessage('Error filling form', 'error');
+  }
+}
+
+// Preview form fields that will be filled
+async function previewForm() {
+  try {
+    // Get the active tab
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+
+    if (!tab || !tab.id) {
+      showMessage('Unable to access current tab', 'error');
+      return;
+    }
+
+    // Get profile data
+    const result = await chrome.storage.sync.get('profile');
+    const profile = result.profile;
+
+    if (!profile || Object.keys(profile).length === 0) {
+      showMessage('Please create a profile first', 'warning');
+      toggleProfileForm();
+      return;
+    }
+
+    // Send preview message to content script
+    chrome.tabs.sendMessage(
+      tab.id,
+      { action: 'previewForm', profile },
+      (response) => {
+        if (chrome.runtime.lastError) {
+          console.error('Error:', chrome.runtime.lastError);
+          showMessage('Unable to preview on this page', 'error');
+          return;
+        }
+
+        if (response && response.success) {
+          const count = response.fieldsDetectedCount || 0;
+          if (count > 0) {
+            showMessage(`👁 Highlighting ${count} field${count !== 1 ? 's' : ''} that will be filled`, 'success');
+          } else {
+            showMessage('No matching fields found on this page', 'warning');
+          }
+        }
+      }
+    );
+  } catch (error) {
+    console.error('Error previewing form:', error);
+    showMessage('Error previewing form', 'error');
   }
 }
 

@@ -24,10 +24,20 @@
 
     <div id="mainView" class="tab-content active">
       <div class="action-buttons">
-        <button id="fillFormBtn" class="btn btn-primary">Fill Form</button>
-        <button id="toggleFormBtn" class="btn btn-secondary">Edit Profile</button>
+        <button id="fillFormBtn" class="btn btn-primary">
+          <span class="btn-icon">✓</span>
+          Fill Form
+        </button>
+        <button id="previewBtn" class="btn btn-accent">
+          <span class="btn-icon">👁</span>
+          Preview
+        </button>
+        <button id="toggleFormBtn" class="btn btn-secondary">
+          <span class="btn-icon">✏</span>
+          Edit
+        </button>
       </div>
-      <div class="keyboard-hint">Tip: Press Alt+F on any page to fill forms</div>
+      <div class="keyboard-hint">Tip: Press Alt+F to fill • Alt+P to preview</div>
 
     <form id="profileForm" class="hidden">
       <section class="form-section">
