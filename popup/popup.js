@@ -1,3 +1,13 @@
+// Constants
+const STORAGE_QUOTA_BYTES = 102400; // Chrome sync storage limit: 100KB
+const STORAGE_ITEM_QUOTA_BYTES = 8192; // Per-item limit: 8KB
+const HISTORY_DEDUP_WINDOW_MS = 5 * 60 * 1000; // 5 minutes
+const HISTORY_MAX_ENTRIES = 100;
+const HISTORY_WEEK_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+const JOB_DESC_MAX_LENGTH = 8000;
+const FILL_BUTTON_TIMEOUT_MS = 10000; // 10 seconds
+const AI_BUTTON_TIMEOUT_MS = 30000; // 30 seconds
+
 // DOM elements
 const fillFormBtn = document.getElementById('fillFormBtn');
 const toggleFormBtn = document.getElementById('toggleFormBtn');
@@ -36,6 +46,39 @@ const profileFields = [
   'currentCompany', 'currentTitle', 'yearsOfExperience',
   'startDate', 'salaryExpectation', 'coverLetter'
 ];
+
+/**
+ * Safely save to chrome.storage.sync with quota error handling
+ * Falls back to chrome.storage.local if quota is exceeded
+ */
+async function safeSyncStorageSet(items) {
+  try {
+    await chrome.storage.sync.set(items);
+    return { success: true };
+  } catch (error) {
+    // Check if error is quota-related
+    if (error.message && error.message.includes('QUOTA')) {
+      console.warn('Storage quota exceeded, attempting fallback to local storage');
+      try {
+        // Try to save to local storage instead
+        await chrome.storage.local.set(items);
+        return {
+          success: true,
+          warning: 'Data saved locally only (sync storage quota exceeded). Data will not sync across devices.'
+        };
+      } catch (localError) {
+        return {
+          success: false,
+          error: 'Storage quota exceeded. Please reduce your profile or history data.'
+        };
+      }
+    }
+    return {
+      success: false,
+      error: error.message || 'Failed to save data'
+    };
+  }
+}
 
 // Load profile on popup open
 document.addEventListener('DOMContentLoaded', () => {
@@ -113,15 +156,20 @@ async function saveProfile(event) {
     }
   });
 
-  try {
-    await chrome.storage.sync.set({ profile });
-    showMessage('Profile saved successfully', 'success');
+  const result = await safeSyncStorageSet({ profile });
+
+  if (result.success) {
+    if (result.warning) {
+      showMessage(result.warning, 'warning');
+    } else {
+      showMessage('Profile saved successfully', 'success');
+    }
     toggleFormBtn.textContent = 'Edit Profile';
     profileForm.classList.add('hidden');
     updateProfileCompleteness();
-  } catch (error) {
-    console.error('Error saving profile:', error);
-    showMessage('Error saving profile', 'error');
+  } else {
+    console.error('Error saving profile:', result.error);
+    showMessage(result.error, 'error');
   }
 }
 
@@ -164,6 +212,12 @@ async function fillForm() {
     fillBtn.innerHTML = '<span class="btn-spinner">⏳</span> Filling...';
     fillBtn.disabled = true;
 
+    // Safety timeout to always restore button state
+    const safetyTimeout = setTimeout(() => {
+      fillBtn.innerHTML = originalText;
+      fillBtn.disabled = false;
+    }, FILL_BUTTON_TIMEOUT_MS);
+
     // Try to inject content script if needed
     try {
       await chrome.scripting.executeScript({
@@ -180,7 +234,8 @@ async function fillForm() {
       tab.id,
       { action: 'fillForm', profile },
       (response) => {
-        // Restore button
+        // Clear safety timeout and restore button
+        clearTimeout(safetyTimeout);
         fillBtn.innerHTML = originalText;
         fillBtn.disabled = false;
 
@@ -316,10 +371,10 @@ async function logApplication(url, title, fieldsCount) {
     const result = await chrome.storage.sync.get('history');
     const history = result.history || [];
 
-    // Check if this URL was already logged recently (within last 5 minutes)
-    const fiveMinutesAgo = Date.now() - (5 * 60 * 1000);
+    // Check if this URL was already logged recently (within dedup window)
+    const dedupWindowStart = Date.now() - HISTORY_DEDUP_WINDOW_MS;
     const recentDuplicate = history.find(entry =>
-      entry.url === url && entry.timestamp >= fiveMinutesAgo
+      entry.url === url && entry.timestamp >= dedupWindowStart
     );
 
     if (recentDuplicate) {
@@ -343,11 +398,14 @@ async function logApplication(url, title, fieldsCount) {
     // Add to beginning of array
     history.unshift(entry);
 
-    // Keep only last 100 entries
-    const trimmedHistory = history.slice(0, 100);
+    // Keep only last N entries
+    const trimmedHistory = history.slice(0, HISTORY_MAX_ENTRIES);
 
     // Save to storage
-    await chrome.storage.sync.set({ history: trimmedHistory });
+    const result = await safeSyncStorageSet({ history: trimmedHistory });
+    if (!result.success && result.error) {
+      console.error('Error saving history:', result.error);
+    }
 
     // Reload history display
     loadHistory();
@@ -396,7 +454,7 @@ function updateStats(history) {
   totalAppsSpan.textContent = total;
 
   // Calculate applications this week
-  const oneWeekAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
+  const oneWeekAgo = Date.now() - HISTORY_WEEK_MS;
   const thisWeek = history.filter(entry => entry.timestamp >= oneWeekAgo).length;
   weekAppsSpan.textContent = thisWeek;
 }
@@ -473,6 +531,20 @@ async function clearHistory() {
   }
 }
 
+/**
+ * Escape CSV cell to prevent formula injection
+ * Prefixes dangerous characters with single quote
+ */
+function escapeCSVCell(cell) {
+  const cellStr = String(cell);
+  // Check if cell starts with potentially dangerous characters
+  if (/^[=+\-@\t\r]/.test(cellStr)) {
+    return `"'${cellStr.replace(/"/g, '""')}"`;
+  }
+  // Regular escaping for quotes
+  return `"${cellStr.replace(/"/g, '""')}"`;
+}
+
 // Export history as CSV
 async function exportHistory() {
   try {
@@ -495,7 +567,7 @@ async function exportHistory() {
 
     const csv = [
       headers.join(','),
-      ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+      ...rows.map(row => row.map(cell => escapeCSVCell(cell)).join(','))
     ].join('\n');
 
     // Download CSV
@@ -580,9 +652,30 @@ async function saveApiKey() {
     return;
   }
 
+  // Validate API key format (Groq keys typically start with gsk_)
+  if (!apiKey.startsWith('gsk_')) {
+    showApiKeyStatus('Warning: Groq API keys usually start with "gsk_". Are you sure this is correct?', 'warning');
+    // Don't return - still allow saving in case format changes
+  }
+
+  // Check minimum length
+  if (apiKey.length < 20) {
+    showApiKeyStatus('API key seems too short. Please check and try again.', 'error');
+    return;
+  }
+
   try {
-    await chrome.storage.sync.set({ groqApiKey: apiKey });
-    showApiKeyStatus('✓ API key saved successfully', 'success');
+    const result = await safeSyncStorageSet({ groqApiKey: apiKey });
+    if (result.success) {
+      if (result.warning) {
+        showApiKeyStatus(result.warning, 'warning');
+      } else {
+        showApiKeyStatus('✓ API key saved successfully', 'success');
+      }
+    } else {
+      console.error('Error saving API key:', result.error);
+      showApiKeyStatus(result.error, 'error');
+    }
   } catch (error) {
     console.error('Error saving API key:', error);
     showApiKeyStatus('Error saving API key', 'error');
@@ -679,6 +772,12 @@ async function generateCoverLetter() {
     const originalText = generateCoverLetterBtn.innerHTML;
     generateCoverLetterBtn.innerHTML = '<span class="btn-spinner">⏳</span> Analyzing job posting...';
 
+    // Safety timeout to always restore button state
+    const safetyTimeout = setTimeout(() => {
+      generateCoverLetterBtn.innerHTML = originalText;
+      generateCoverLetterBtn.disabled = false;
+    }, AI_BUTTON_TIMEOUT_MS);
+
     // Try to inject content script if needed
     try {
       await chrome.scripting.executeScript({
@@ -697,6 +796,7 @@ async function generateCoverLetter() {
         if (chrome.runtime.lastError) {
           console.error('Error:', chrome.runtime.lastError);
           showMessage('Please reload this page and try again', 'error');
+          clearTimeout(safetyTimeout);
           generateCoverLetterBtn.disabled = false;
           generateCoverLetterBtn.innerHTML = originalText;
           return;
@@ -704,6 +804,7 @@ async function generateCoverLetter() {
 
         if (!response || !response.success) {
           showMessage('Could not extract job description from this page', 'error');
+          clearTimeout(safetyTimeout);
           generateCoverLetterBtn.disabled = false;
           generateCoverLetterBtn.innerHTML = originalText;
           return;
@@ -721,6 +822,16 @@ async function generateCoverLetter() {
           // Update cover letter field in profile
           const coverLetterField = document.getElementById('coverLetter');
           if (coverLetterField) {
+            // Check if field already has content
+            const existingContent = coverLetterField.value.trim();
+            if (existingContent && existingContent.length > 50) {
+              // Ask for confirmation before overwriting
+              if (!confirm('This will replace your existing cover letter. Continue?')) {
+                showMessage('Cover letter generation cancelled', 'warning');
+                return;
+              }
+            }
+
             coverLetterField.value = coverLetter;
 
             // Show profile form if it's hidden
@@ -748,6 +859,7 @@ async function generateCoverLetter() {
           console.error('Error generating cover letter:', error);
           showMessage('Error generating cover letter: ' + error.message, 'error');
         } finally {
+          clearTimeout(safetyTimeout);
           generateCoverLetterBtn.disabled = false;
           generateCoverLetterBtn.innerHTML = originalText;
         }
@@ -947,12 +1059,14 @@ function validateEmail(email) {
   return re.test(email);
 }
 
-// Phone validation (flexible format)
+// Phone validation (flexible format for international numbers)
 function validatePhone(phone) {
   // Remove all non-digits
   const digits = phone.replace(/\D/g, '');
-  // Should have 10-11 digits (with or without country code)
-  return digits.length >= 10 && digits.length <= 11;
+  // Should have 7-15 digits (international standard)
+  // 7 digits: minimum (some countries)
+  // 15 digits: maximum including country code (ITU E.164 standard)
+  return digits.length >= 7 && digits.length <= 15;
 }
 
 // URL validation
@@ -1055,14 +1169,27 @@ function setupRealtimeValidation() {
   }
 }
 
-// Format phone number to (XXX) XXX-XXXX
+// Format phone number to (XXX) XXX-XXXX for US numbers
+// For international numbers, just clean up spacing
 function formatPhoneNumber(phone) {
   const digits = phone.replace(/\D/g, '');
 
+  // US format (10 digits)
   if (digits.length === 10) {
     return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
-  } else if (digits.length === 11 && digits[0] === '1') {
-    return `(${digits.slice(1, 4)}) ${digits.slice(4, 7)}-${digits.slice(7)}`;
+  }
+  // US format with country code (11 digits starting with 1)
+  else if (digits.length === 11 && digits[0] === '1') {
+    return `+1 (${digits.slice(1, 4)}) ${digits.slice(4, 7)}-${digits.slice(7)}`;
+  }
+  // International format - just add basic spacing
+  else if (digits.length >= 7 && digits.length <= 15) {
+    // Return the original input if it's already well-formatted
+    // Otherwise just return digits with + prefix if it looks like international
+    if (phone.trim().startsWith('+')) {
+      return phone.trim();
+    }
+    return digits;
   }
 
   return null;

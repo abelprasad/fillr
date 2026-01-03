@@ -1,6 +1,37 @@
 // Content script for detecting and filling form fields
 // This runs on all web pages to enable autofill functionality
 
+// Constants
+const JOB_DESC_MAX_LENGTH = 8000;
+const PREVIEW_AUTO_CLEAR_MS = 30000; // 30 seconds
+
+// Theme cache to avoid multiple storage fetches
+let themeCache = null;
+let themeCacheTime = 0;
+const THEME_CACHE_DURATION_MS = 60000; // Cache for 1 minute
+
+/**
+ * Get theme preference with caching
+ */
+async function getTheme() {
+  const now = Date.now();
+  // Return cached value if still valid
+  if (themeCache !== null && (now - themeCacheTime) < THEME_CACHE_DURATION_MS) {
+    return themeCache;
+  }
+
+  // Fetch from storage
+  try {
+    const result = await chrome.storage.sync.get('theme');
+    themeCache = result.theme === 'dark';
+    themeCacheTime = now;
+    return themeCache;
+  } catch (error) {
+    console.log('Could not get theme preference');
+    return false; // Default to light theme
+  }
+}
+
 // Listen for messages from popup
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'fillForm') {
@@ -40,14 +71,8 @@ async function fillFormFields(profile) {
       };
     }
 
-    // Get theme preference once
-    let isDark = false;
-    try {
-      const result = await chrome.storage.sync.get('theme');
-      isDark = result.theme === 'dark';
-    } catch (error) {
-      console.log('Could not get theme preference');
-    }
+    // Get theme preference from cache
+    const isDark = await getTheme();
 
     let filledCount = 0;
 
@@ -123,31 +148,38 @@ async function fillFormFields(profile) {
 /**
  * Find matching option in a select element
  * Tries to match by value first, then by text content
+ * Prioritizes exact matches over partial matches
  */
 function findMatchingOption(selectElement, targetValue) {
   const options = Array.from(selectElement.options);
+  const targetLower = targetValue.toLowerCase();
 
-  // Try exact value match
+  // Priority 1: Exact value match (case-sensitive)
   let match = options.find(opt => opt.value === targetValue);
   if (match) return match;
 
-  // Try case-insensitive value match
-  match = options.find(opt =>
-    opt.value.toLowerCase() === targetValue.toLowerCase()
-  );
+  // Priority 2: Exact value match (case-insensitive)
+  match = options.find(opt => opt.value.toLowerCase() === targetLower);
   if (match) return match;
 
-  // Try text content match
-  match = options.find(opt =>
-    opt.textContent.trim().toLowerCase() === targetValue.toLowerCase()
-  );
+  // Priority 3: Exact text content match (case-insensitive)
+  match = options.find(opt => opt.textContent.trim().toLowerCase() === targetLower);
   if (match) return match;
 
-  // Try partial match
-  match = options.find(opt =>
-    opt.value.toLowerCase().includes(targetValue.toLowerCase()) ||
-    opt.textContent.toLowerCase().includes(targetValue.toLowerCase())
-  );
+  // Priority 4: Value starts with target (more specific than contains)
+  match = options.find(opt => opt.value.toLowerCase().startsWith(targetLower));
+  if (match) return match;
+
+  // Priority 5: Text starts with target
+  match = options.find(opt => opt.textContent.trim().toLowerCase().startsWith(targetLower));
+  if (match) return match;
+
+  // Priority 6: Partial match in value (only if no better match found)
+  match = options.find(opt => opt.value.toLowerCase().includes(targetLower));
+  if (match) return match;
+
+  // Priority 7: Partial match in text (last resort)
+  match = options.find(opt => opt.textContent.toLowerCase().includes(targetLower));
 
   return match;
 }
@@ -225,14 +257,8 @@ async function previewFormFields(profile) {
 
     let detectedCount = 0;
 
-    // Get theme preference once for all fields
-    let isDark = false;
-    try {
-      const result = await chrome.storage.sync.get('theme');
-      isDark = result.theme === 'dark';
-    } catch (error) {
-      console.log('Could not get theme preference');
-    }
+    // Get theme preference from cache
+    const isDark = await getTheme();
 
     // Highlight each detected field
     for (const { element, fieldType } of detectedFields) {
@@ -299,12 +325,35 @@ function highlightPreviewFieldSync(element, fieldType, value, isDark = false) {
     backdrop-filter: blur(10px);
   `;
 
-  // Position tooltip
-  const rect = element.getBoundingClientRect();
-  tooltip.style.top = `${window.scrollY + rect.top - 35}px`;
-  tooltip.style.left = `${window.scrollX + rect.left}px`;
-
   document.body.appendChild(tooltip);
+
+  // Position tooltip with boundary detection
+  const rect = element.getBoundingClientRect();
+  const tooltipRect = tooltip.getBoundingClientRect();
+  const viewportHeight = window.innerHeight;
+  const viewportWidth = window.innerWidth;
+
+  // Default: position above the element
+  let top = window.scrollY + rect.top - tooltipRect.height - 5;
+  let left = window.scrollX + rect.left;
+
+  // If tooltip would go above viewport, position below instead
+  if (rect.top - tooltipRect.height < 0) {
+    top = window.scrollY + rect.bottom + 5;
+  }
+
+  // If tooltip would go off right edge, align to right
+  if (rect.left + tooltipRect.width > viewportWidth) {
+    left = window.scrollX + rect.right - tooltipRect.width;
+  }
+
+  // If tooltip would go off left edge, align to left
+  if (left < window.scrollX) {
+    left = window.scrollX + 5;
+  }
+
+  tooltip.style.top = `${top}px`;
+  tooltip.style.left = `${left}px`;
 
   // Store original styles for cleanup
   element.dataset.fillrOriginalBorder = originalBorder;
@@ -344,14 +393,8 @@ function clearPreviewHighlights() {
  * Show button to clear preview
  */
 async function showClearPreviewButton() {
-  // Get theme preference
-  let isDark = false;
-  try {
-    const result = await chrome.storage.sync.get('theme');
-    isDark = result.theme === 'dark';
-  } catch (error) {
-    console.log('Could not get theme preference');
-  }
+  // Get theme preference from cache
+  const isDark = await getTheme();
 
   // Remove existing button if any
   const existing = document.getElementById('fillr-clear-preview');
@@ -397,10 +440,10 @@ async function showClearPreviewButton() {
 
   document.body.appendChild(button);
 
-  // Auto-remove after 30 seconds
+  // Auto-remove after timeout
   setTimeout(() => {
     clearPreviewHighlights();
-  }, 30000);
+  }, PREVIEW_AUTO_CLEAR_MS);
 }
 
 /**
@@ -428,7 +471,7 @@ document.addEventListener('keydown', async (event) => {
       }
 
       // Fill the form
-      const fillResult = fillFormFields(profile);
+      const fillResult = await fillFormFields(profile);
 
       // Show notification
       if (fillResult.success && fillResult.fieldsFilledCount > 0) {
@@ -462,7 +505,7 @@ document.addEventListener('keydown', async (event) => {
       }
 
       // Preview the form
-      const previewResult = previewFormFields(profile);
+      const previewResult = await previewFormFields(profile);
 
       // Show notification
       if (previewResult.success && previewResult.fieldsDetectedCount > 0) {
@@ -480,6 +523,15 @@ document.addEventListener('keydown', async (event) => {
       showNotification('Error previewing form', 'error');
     }
   }
+
+  // Check for Escape key - Clear Preview
+  if (event.key === 'Escape') {
+    const clearBtn = document.getElementById('fillr-clear-preview');
+    if (clearBtn) {
+      clearPreviewHighlights();
+      showNotification('Preview cleared', 'success');
+    }
+  }
 });
 
 // Show notification on page
@@ -490,14 +542,8 @@ async function showNotification(message, type = 'success') {
     existing.remove();
   }
 
-  // Get theme preference
-  let isDark = false;
-  try {
-    const result = await chrome.storage.sync.get('theme');
-    isDark = result.theme === 'dark';
-  } catch (error) {
-    console.log('Could not get theme preference');
-  }
+  // Get theme preference from cache
+  const isDark = await getTheme();
 
   // Create notification element
   const notification = document.createElement('div');
@@ -639,9 +685,21 @@ function scrapeJobDescription() {
       .replace(/\n\s*\n/g, '\n')
       .trim();
 
-    // Limit description length (Gemini has context limits)
-    if (jobDescription.length > 8000) {
-      jobDescription = jobDescription.substring(0, 8000) + '...';
+    // Limit description length to avoid API limits
+    // Try to truncate at sentence boundary for better context
+    if (jobDescription.length > JOB_DESC_MAX_LENGTH) {
+      let truncated = jobDescription.substring(0, JOB_DESC_MAX_LENGTH);
+      // Find last sentence ending (., !, or ?)
+      const lastSentenceEnd = Math.max(
+        truncated.lastIndexOf('. '),
+        truncated.lastIndexOf('! '),
+        truncated.lastIndexOf('? ')
+      );
+      if (lastSentenceEnd > JOB_DESC_MAX_LENGTH * 0.8) {
+        // Only use sentence boundary if it's not too far back (at least 80% of max)
+        truncated = truncated.substring(0, lastSentenceEnd + 1);
+      }
+      jobDescription = truncated + '...';
     }
 
     return {
