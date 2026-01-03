@@ -119,7 +119,7 @@ Your profile data will be deleted from Chrome's sync storage.
 - Test on various job application sites
 - Report any issues or bugs
 - Customize the extension for your needs
-- Consider adding new features (see `CLAUDE.md` for ideas)
+- Consider adding new features based on your workflow
 
 ## Tips for Best Results
 
@@ -134,4 +134,4 @@ Your profile data will be deleted from Chrome's sync storage.
 - Check the main README.md for more information
 - Review the code in each file to understand how it works
 - Open Chrome DevTools to debug issues
-- Check the specification in `CLAUDE.md` for feature details
+- Review the codebase for implementation details
