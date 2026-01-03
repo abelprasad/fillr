@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fillr Icon Generator</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background: #f0f0f0;
+    }
+    .icon-container {
+      display: inline-block;
+      margin: 20px;
+      text-align: center;
+    }
+    .icon-box {
+      background: white;
+      padding: 10px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    h2 {
+      color: #333;
+      margin-bottom: 5px;
+    }
+    p {
+      color: #666;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Fillr Icon Generator</h1>
+  <p>Right-click each icon and "Save Image As" or use a screenshot tool to save as PNG.</p>
+
+  <div class="icon-container">
+    <h2>16x16</h2>
+    <div class="icon-box">
+      <svg width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+        <rect width="16" height="16" rx="3" fill="#2563eb"/>
+        <path d="M4 6 L8 10 L12 6" stroke="white" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <p>icon16.png</p>
+  </div>
+
+  <div class="icon-container">
+    <h2>48x48</h2>
+    <div class="icon-box">
+      <svg width="48" height="48" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+        <rect width="48" height="48" rx="8" fill="#2563eb"/>
+        <path d="M12 18 L24 30 L36 18" stroke="white" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="24" cy="24" r="18" stroke="white" stroke-width="2" fill="none"/>
+      </svg>
+    </div>
+    <p>icon48.png</p>
+  </div>
+
+  <div class="icon-container">
+    <h2>128x128</h2>
+    <div class="icon-box">
+      <svg width="128" height="128" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
+        <rect width="128" height="128" rx="20" fill="#2563eb"/>
+        <path d="M32 48 L64 80 L96 48" stroke="white" stroke-width="8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="64" cy="64" r="48" stroke="white" stroke-width="4" fill="none"/>
+        <text x="64" y="105" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="white" text-anchor="middle">FILLR</text>
+      </svg>
+    </div>
+    <p>icon128.png</p>
+  </div>
+
+  <div style="margin-top: 40px; padding: 20px; background: white; border-radius: 8px; max-width: 600px;">
+    <h3>Instructions:</h3>
+    <ol>
+      <li>Right-click on each icon above</li>
+      <li>Select "Save Image As..." (or use a screenshot tool)</li>
+      <li>Save as: icon16.png, icon48.png, icon128.png respectively</li>
+      <li>Place the PNG files in the icons/ directory</li>
+    </ol>
+    <p><strong>Alternative:</strong> Use an online SVG to PNG converter or design your own icons using tools like Figma, Canva, or Adobe Illustrator.</p>
+  </div>
+</body>
+</html>

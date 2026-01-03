@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fillr - Profile Manager</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Fillr</h1>
+      <p class="tagline">One-click job application autofill</p>
+    </header>
+
+    <div id="message" class="message hidden"></div>
+
+    <div class="action-buttons">
+      <button id="fillFormBtn" class="btn btn-primary">Fill Form</button>
+      <button id="toggleFormBtn" class="btn btn-secondary">Edit Profile</button>
+    </div>
+
+    <form id="profileForm" class="hidden">
+      <section class="form-section">
+        <h2>Personal Information</h2>
+        <div class="form-group">
+          <label for="firstName">First Name</label>
+          <input type="text" id="firstName" name="firstName" placeholder="John">
+        </div>
+        <div class="form-group">
+          <label for="lastName">Last Name</label>
+          <input type="text" id="lastName" name="lastName" placeholder="Doe">
+        </div>
+        <div class="form-group">
+          <label for="email">Email</label>
+          <input type="email" id="email" name="email" placeholder="john.doe@example.com">
+        </div>
+        <div class="form-group">
+          <label for="phone">Phone Number</label>
+          <input type="tel" id="phone" name="phone" placeholder="(555) 123-4567">
+        </div>
+        <div class="form-group">
+          <label for="street">Street Address</label>
+          <input type="text" id="street" name="street" placeholder="123 Main St">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="city">City</label>
+            <input type="text" id="city" name="city" placeholder="San Francisco">
+          </div>
+          <div class="form-group">
+            <label for="state">State</label>
+            <input type="text" id="state" name="state" placeholder="CA">
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="zip">ZIP Code</label>
+          <input type="text" id="zip" name="zip" placeholder="94105">
+        </div>
+      </section>
+
+      <section class="form-section">
+        <h2>Professional Links</h2>
+        <div class="form-group">
+          <label for="linkedin">LinkedIn URL</label>
+          <input type="url" id="linkedin" name="linkedin" placeholder="https://linkedin.com/in/johndoe">
+        </div>
+        <div class="form-group">
+          <label for="github">GitHub URL</label>
+          <input type="url" id="github" name="github" placeholder="https://github.com/johndoe">
+        </div>
+        <div class="form-group">
+          <label for="portfolio">Portfolio Website</label>
+          <input type="url" id="portfolio" name="portfolio" placeholder="https://johndoe.com">
+        </div>
+      </section>
+
+      <section class="form-section">
+        <h2>Education</h2>
+        <div class="form-group">
+          <label for="university">University Name</label>
+          <input type="text" id="university" name="university" placeholder="Stanford University">
+        </div>
+        <div class="form-group">
+          <label for="major">Major</label>
+          <input type="text" id="major" name="major" placeholder="Computer Science">
+        </div>
+        <div class="form-group">
+          <label for="graduationDate">Expected Graduation Date</label>
+          <input type="date" id="graduationDate" name="graduationDate">
+        </div>
+        <div class="form-group">
+          <label for="gpa">GPA</label>
+          <input type="text" id="gpa" name="gpa" placeholder="3.8">
+        </div>
+      </section>
+
+      <section class="form-section">
+        <h2>Work Authorization</h2>
+        <div class="form-group">
+          <label for="workAuthorization">Work Authorization Status</label>
+          <select id="workAuthorization" name="workAuthorization">
+            <option value="">Select status</option>
+            <option value="citizen">US Citizen</option>
+            <option value="permanent-resident">Permanent Resident</option>
+            <option value="work-visa">Work Visa (H1B, etc.)</option>
+            <option value="student-visa">Student Visa (F-1, J-1)</option>
+            <option value="ead">Employment Authorization Document (EAD)</option>
+            <option value="require-sponsorship">Require Sponsorship</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="sponsorship">Sponsorship Requirement</label>
+          <select id="sponsorship" name="sponsorship">
+            <option value="">Select option</option>
+            <option value="no">No</option>
+            <option value="yes">Yes</option>
+            <option value="future">Not now, but in the future</option>
+          </select>
+        </div>
+      </section>
+
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary">Save Profile</button>
+        <button type="button" id="cancelBtn" class="btn btn-secondary">Cancel</button>
+      </div>
+    </form>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
