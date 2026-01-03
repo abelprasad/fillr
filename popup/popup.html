@@ -13,12 +13,18 @@
       <p class="tagline">One-click job application autofill</p>
     </header>
 
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="main">Main</button>
+      <button class="tab-btn" data-tab="history">History</button>
+    </div>
+
     <div id="message" class="message hidden"></div>
 
-    <div class="action-buttons">
-      <button id="fillFormBtn" class="btn btn-primary">Fill Form</button>
-      <button id="toggleFormBtn" class="btn btn-secondary">Edit Profile</button>
-    </div>
+    <div id="mainView" class="tab-content active">
+      <div class="action-buttons">
+        <button id="fillFormBtn" class="btn btn-primary">Fill Form</button>
+        <button id="toggleFormBtn" class="btn btn-secondary">Edit Profile</button>
+      </div>
 
     <form id="profileForm" class="hidden">
       <section class="form-section">
@@ -125,6 +131,35 @@
         <button type="button" id="cancelBtn" class="btn btn-secondary">Cancel</button>
       </div>
     </form>
+    </div>
+
+    <div id="historyView" class="tab-content">
+      <div class="history-header">
+        <h2>Application History</h2>
+        <div class="history-actions">
+          <button id="exportHistoryBtn" class="btn btn-small" title="Export as CSV">Export</button>
+          <button id="clearHistoryBtn" class="btn btn-small btn-danger" title="Clear all history">Clear All</button>
+        </div>
+      </div>
+
+      <div id="historyStats" class="history-stats">
+        <div class="stat-item">
+          <span class="stat-label">Total Applications:</span>
+          <span id="totalApps" class="stat-value">0</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">This Week:</span>
+          <span id="weekApps" class="stat-value">0</span>
+        </div>
+      </div>
+
+      <div id="historyList" class="history-list">
+        <div class="empty-state">
+          <p>No applications tracked yet.</p>
+          <p class="empty-hint">Use "Fill Form" to automatically log your applications.</p>
+        </div>
+      </div>
+    </div>
   </div>
 
   <script src="popup.js"></script>

@@ -7,6 +7,8 @@ Fillr is a Chrome browser extension that simplifies job and internship applicati
 - **Profile Management**: Store your personal information once and reuse it across all applications
 - **Smart Field Detection**: Intelligently matches form fields using multiple detection strategies
 - **One-Click Autofill**: Fill out entire application forms with a single click
+- **Application Tracker**: Automatically log every application with company name, date, and URL
+- **Export History**: Download your application history as CSV for tracking
 - **Visual Feedback**: See which fields were filled with highlighted animations
 - **Privacy First**: All data stored locally using Chrome's sync storage
 
@@ -42,6 +44,18 @@ Coming soon!
 4. Review the auto-filled fields
 5. Complete any remaining custom questions
 6. Submit your application
+
+### Tracking Your Applications
+
+1. Click the Fillr extension icon
+2. Switch to the "History" tab
+3. View all your submitted applications with:
+   - Company name (extracted from page title)
+   - Application URL
+   - Date and time applied
+   - Number of fields filled
+4. Export your history as CSV for spreadsheet tracking
+5. Delete individual entries or clear all history
 
 ## Profile Data Fields
 
@@ -147,19 +161,25 @@ Fillr works on major Applicant Tracking Systems (ATS):
 
 ## Roadmap
 
-### v1.0 (Current)
+### v1.0
 - ✅ Profile management
 - ✅ Smart field detection
 - ✅ One-click autofill
 - ✅ Visual feedback
 
+### v1.1 (Current)
+- ✅ Application history tracking
+- ✅ Statistics dashboard (total apps, weekly apps)
+- ✅ Export history to CSV
+- ✅ Delete individual entries
+
 ### Future Versions
-- Application tracking dashboard
 - AI-powered field matching
 - Multiple profile support
 - Resume tailoring suggestions
-- Analytics and insights
+- Advanced analytics and insights
 - Cover letter templates
+- Browser notifications for application milestones
 
 ## Contributing
 
