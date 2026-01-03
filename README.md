@@ -4,13 +4,46 @@ Fillr is a Chrome browser extension that simplifies job and internship applicati
 
 ## Features
 
+- **AI-Powered Cover Letters**: Generate personalized cover letters using Google Gemini AI
 - **Profile Management**: Store your personal information once and reuse it across all applications
 - **Smart Field Detection**: Intelligently matches form fields using multiple detection strategies
 - **One-Click Autofill**: Fill out entire application forms with a single click
 - **Application Tracker**: Automatically log every application with company name, date, and URL
 - **Export History**: Download your application history as CSV for tracking
 - **Visual Feedback**: See which fields were filled with highlighted animations
+- **Dark Mode**: Beautiful dark theme with automatic theme persistence
 - **Privacy First**: All data stored locally using Chrome's sync storage
+
+## AI Features
+
+### Smart Cover Letter Generation
+
+Fillr now includes AI-powered cover letter generation using Google Gemini, completely free!
+
+**How it works:**
+1. Navigate to any job posting (Workday, Greenhouse, LinkedIn, etc.)
+2. Click the "Generate Cover Letter with AI" button
+3. AI analyzes the job description and your profile
+4. Creates a personalized, professional cover letter (250-350 words)
+5. Auto-fills the cover letter field in your profile
+
+**Supported Platforms:**
+- Greenhouse
+- Lever
+- Workday
+- LinkedIn Jobs
+- Indeed
+- Generic job boards
+
+**Setup (One-Time):**
+1. Get a free API key from [Google AI Studio](https://ai.google.dev/)
+2. Open Fillr → Settings tab
+3. Paste your API key and click "Save"
+4. Click "Test Connection" to verify
+
+**Free Tier:** 1,500 requests per day with Gemini 1.5 Flash
+
+**Privacy:** Your API key is stored locally in your browser only. Job descriptions are sent to Google Gemini API for processing but are not stored.
 
 ## Installation
 
@@ -56,6 +89,18 @@ Coming soon!
    - Number of fields filled
 4. Export your history as CSV for spreadsheet tracking
 5. Delete individual entries or clear all history
+
+### Using AI Cover Letter Generation
+
+1. Navigate to a job posting page
+2. Click the Fillr extension icon
+3. Click "Generate Cover Letter with AI" ✨
+4. Wait 5-10 seconds while AI analyzes the job
+5. Review the generated cover letter in the profile form
+6. Edit if needed and save
+7. Click "Fill Form" to autofill your application
+
+**Tip:** The AI considers your entire profile (education, experience, skills) and the job description to create a tailored cover letter for each position.
 
 ## Profile Data Fields
 
@@ -122,15 +167,24 @@ fillr/
 - **Manifest Version**: V3 (latest Chrome extension standard)
 - **JavaScript**: Vanilla JS (no frameworks)
 - **Storage**: Chrome Storage Sync API
-- **Styling**: Plain CSS
+- **AI**: Google Gemini 1.5 Flash API
+- **Styling**: Modern CSS with CSS variables for theming
 
 ### How It Works
 
+**Autofill:**
 1. **Field Detection**: Content script scans the page for form inputs
 2. **Pattern Matching**: Matches fields using name, id, label, placeholder, and aria-label attributes
 3. **Data Retrieval**: Fetches stored profile from Chrome storage
 4. **Autofill**: Populates matching fields with profile data
 5. **Visual Feedback**: Highlights filled fields with green border animation
+
+**AI Cover Letters:**
+1. **Job Scraping**: Extracts job description, company name, and title from page
+2. **Profile Analysis**: Gathers relevant info from your saved profile
+3. **AI Generation**: Sends context to Google Gemini API
+4. **Personalization**: AI crafts cover letter matching job requirements
+5. **Auto-fill**: Generated content populates the cover letter field
 
 ## Supported Platforms
 
@@ -145,10 +199,14 @@ Fillr works on major Applicant Tracking Systems (ATS):
 
 ## Privacy & Security
 
-- All data is stored locally using Chrome's sync storage
-- No data is sent to external servers
+- All profile data is stored locally using Chrome's sync storage
+- API keys are stored locally in your browser only
+- Job descriptions are sent to Google Gemini API only during cover letter generation
 - No tracking or analytics
+- No data collection by Fillr
 - Open source - review the code yourself
+
+**Note:** When using AI features, job descriptions are sent to Google's Gemini API for processing. This is required for cover letter generation. Your API key and profile data remain in your browser.
 
 ## Development
 
@@ -178,19 +236,31 @@ Fillr works on major Applicant Tracking Systems (ATS):
 - ✅ One-click autofill
 - ✅ Visual feedback
 
-### v1.1 (Current)
+### v1.1
 - ✅ Application history tracking
 - ✅ Statistics dashboard (total apps, weekly apps)
 - ✅ Export history to CSV
 - ✅ Delete individual entries
 
+### v1.2
+- ✅ Dark mode with theme persistence
+- ✅ Enhanced visual design with glassmorphism
+- ✅ Preview mode for form fields
+- ✅ Keyboard shortcuts (Alt+F, Alt+P)
+
+### v1.3 (Current)
+- ✅ AI-powered cover letter generation with Google Gemini
+- ✅ Smart job description scraper
+- ✅ Settings tab for API key management
+- ✅ Personalized cover letters based on profile + job posting
+
 ### Future Versions
-- AI-powered field matching
+- AI-powered custom question answering
 - Multiple profile support
-- Resume tailoring suggestions
+- Resume tailoring suggestions with AI
 - Advanced analytics and insights
-- Cover letter templates
 - Browser notifications for application milestones
+- Chrome Web Store publication
 
 ## Contributing
 
