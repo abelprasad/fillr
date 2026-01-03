@@ -19,11 +19,25 @@ chrome.runtime.onInstalled.addListener((details) => {
 // Handle context menu clicks
 chrome.contextMenus.onClicked.addListener((info, tab) => {
   if (info.menuItemId === 'fillr-up') {
+    console.log('🔵 Context menu clicked, sending message to tab:', tab.id);
+
     // Send message to content script to generate AI answer
-    chrome.tabs.sendMessage(tab.id, {
-      action: 'fillrUp',
-      frameId: info.frameId
-    });
+    chrome.tabs.sendMessage(
+      tab.id,
+      {
+        action: 'fillrUp',
+        frameId: info.frameId
+      },
+      (response) => {
+        // Check for errors
+        if (chrome.runtime.lastError) {
+          console.error('❌ Error sending message:', chrome.runtime.lastError.message);
+          return;
+        }
+
+        console.log('✅ Response from content script:', response);
+      }
+    );
   }
 });
 
