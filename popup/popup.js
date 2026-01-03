@@ -20,7 +20,7 @@ const weekAppsSpan = document.getElementById('weekApps');
 
 // AI/Settings elements
 const generateCoverLetterBtn = document.getElementById('generateCoverLetterBtn');
-const geminiApiKeyInput = document.getElementById('geminiApiKey');
+const apiKeyInput = document.getElementById('apiKey');
 const toggleApiKeyBtn = document.getElementById('toggleApiKeyBtn');
 const saveApiKeyBtn = document.getElementById('saveApiKeyBtn');
 const testApiKeyBtn = document.getElementById('testApiKeyBtn');
@@ -555,9 +555,9 @@ function escapeHtml(text) {
 // Load API key from storage
 async function loadApiKey() {
   try {
-    const result = await chrome.storage.sync.get('geminiApiKey');
-    if (result.geminiApiKey) {
-      geminiApiKeyInput.value = result.geminiApiKey;
+    const result = await chrome.storage.sync.get('groqApiKey');
+    if (result.groqApiKey) {
+      apiKeyInput.value = result.groqApiKey;
     }
   } catch (error) {
     console.error('Error loading API key:', error);
@@ -566,14 +566,14 @@ async function loadApiKey() {
 
 // Toggle API key visibility
 function toggleApiKeyVisibility() {
-  const type = geminiApiKeyInput.type === 'password' ? 'text' : 'password';
-  geminiApiKeyInput.type = type;
+  const type = apiKeyInput.type === 'password' ? 'text' : 'password';
+  apiKeyInput.type = type;
   toggleApiKeyBtn.textContent = type === 'password' ? '👁' : '🙈';
 }
 
 // Save API key to storage
 async function saveApiKey() {
-  const apiKey = geminiApiKeyInput.value.trim();
+  const apiKey = apiKeyInput.value.trim();
 
   if (!apiKey) {
     showApiKeyStatus('Please enter an API key', 'error');
@@ -581,7 +581,7 @@ async function saveApiKey() {
   }
 
   try {
-    await chrome.storage.sync.set({ geminiApiKey: apiKey });
+    await chrome.storage.sync.set({ groqApiKey: apiKey });
     showApiKeyStatus('✓ API key saved successfully', 'success');
   } catch (error) {
     console.error('Error saving API key:', error);
@@ -591,7 +591,7 @@ async function saveApiKey() {
 
 // Test API key connection
 async function testApiKey() {
-  const apiKey = geminiApiKeyInput.value.trim();
+  const apiKey = apiKeyInput.value.trim();
 
   if (!apiKey) {
     showApiKeyStatus('Please enter an API key first', 'error');
@@ -602,18 +602,20 @@ async function testApiKey() {
   testApiKeyBtn.textContent = 'Testing...';
 
   try {
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-8b:generateContent?key=${apiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{
-            parts: [{ text: 'Hello' }]
-          }]
-        })
-      }
-    );
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: 'llama-3.3-70b-versatile',
+        messages: [
+          { role: 'user', content: 'Hello' }
+        ],
+        max_tokens: 10
+      })
+    });
 
     if (response.ok) {
       showApiKeyStatus('✓ API key is valid and working!', 'success');
@@ -641,15 +643,15 @@ function showApiKeyStatus(message, type) {
   }, 5000);
 }
 
-// Generate cover letter using Gemini AI
+// Generate cover letter using Groq AI
 async function generateCoverLetter() {
   try {
     // Check if API key is set
-    const result = await chrome.storage.sync.get('geminiApiKey');
-    const apiKey = result.geminiApiKey;
+    const result = await chrome.storage.sync.get('groqApiKey');
+    const apiKey = result.groqApiKey;
 
     if (!apiKey) {
-      showMessage('Please add your Gemini API key in Settings first', 'warning');
+      showMessage('Please add your Groq API key in Settings first', 'warning');
       switchTab('settings');
       return;
     }
@@ -712,9 +714,9 @@ async function generateCoverLetter() {
         // Update loading message
         generateCoverLetterBtn.innerHTML = '<span class="btn-spinner">✨</span> Generating cover letter...';
 
-        // Call Gemini API to generate cover letter
+        // Call Groq API to generate cover letter
         try {
-          const coverLetter = await callGeminiAPI(apiKey, profile, jobDescription, companyName, jobTitle);
+          const coverLetter = await callGroqAPI(apiKey, profile, jobDescription, companyName, jobTitle);
 
           // Update cover letter field in profile
           const coverLetterField = document.getElementById('coverLetter');
@@ -759,8 +761,8 @@ async function generateCoverLetter() {
   }
 }
 
-// Call Gemini API to generate cover letter
-async function callGeminiAPI(apiKey, profile, jobDescription, companyName, jobTitle) {
+// Call Groq API to generate cover letter
+async function callGroqAPI(apiKey, profile, jobDescription, companyName, jobTitle) {
   const prompt = `You are a professional career coach helping someone write a cover letter for a job application.
 
 APPLICANT PROFILE:
@@ -797,22 +799,28 @@ DO NOT include:
 
 Write the cover letter now:`;
 
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-8b:generateContent?key=${apiKey}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{
-          parts: [{ text: prompt }]
-        }],
-        generationConfig: {
-          temperature: 0.7,
-          maxOutputTokens: 1000,
+  const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`
+    },
+    body: JSON.stringify({
+      model: 'llama-3.3-70b-versatile',
+      messages: [
+        {
+          role: 'system',
+          content: 'You are a professional career coach who writes compelling cover letters.'
+        },
+        {
+          role: 'user',
+          content: prompt
         }
-      })
-    }
-  );
+      ],
+      temperature: 0.7,
+      max_tokens: 1000
+    })
+  });
 
   if (!response.ok) {
     const error = await response.json();
@@ -820,7 +828,7 @@ Write the cover letter now:`;
   }
 
   const data = await response.json();
-  const coverLetter = data.candidates[0].content.parts[0].text.trim();
+  const coverLetter = data.choices[0].message.content.trim();
 
   return coverLetter;
 }

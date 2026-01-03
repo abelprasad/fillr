@@ -18,7 +18,7 @@ Fillr is a Chrome browser extension that simplifies job and internship applicati
 
 ### Smart Cover Letter Generation
 
-Fillr now includes AI-powered cover letter generation using Google Gemini, completely free!
+Fillr now includes AI-powered cover letter generation using **Groq**, completely free and blazing fast!
 
 **How it works:**
 1. Navigate to any job posting (Workday, Greenhouse, LinkedIn, etc.)
@@ -36,14 +36,18 @@ Fillr now includes AI-powered cover letter generation using Google Gemini, compl
 - Generic job boards
 
 **Setup (One-Time):**
-1. Get a free API key from [Google AI Studio](https://ai.google.dev/)
+1. Get a free API key from [Groq Console](https://console.groq.com/)
 2. Open Fillr → Settings tab
 3. Paste your API key and click "Save"
 4. Click "Test Connection" to verify
 
-**Free Tier:** Gemini 2.0 Flash (experimental) - check current limits at ai.google.dev
+**Why Groq:**
+- ⚡ 10x faster than other AI APIs
+- 🆓 Completely free, very generous limits
+- 🚀 Uses Llama 3.3 70B (state-of-the-art model)
+- 💳 No credit card required
 
-**Privacy:** Your API key is stored locally in your browser only. Job descriptions are sent to Google Gemini API for processing but are not stored.
+**Privacy:** Your API key is stored locally in your browser only. Job descriptions are sent to Groq API for processing but are not stored.
 
 ## Installation
 
@@ -167,7 +171,7 @@ fillr/
 - **Manifest Version**: V3 (latest Chrome extension standard)
 - **JavaScript**: Vanilla JS (no frameworks)
 - **Storage**: Chrome Storage Sync API
-- **AI**: Google Gemini 1.5 Flash API
+- **AI**: Groq API with Llama 3.3 70B
 - **Styling**: Modern CSS with CSS variables for theming
 
 ### How It Works
@@ -182,9 +186,9 @@ fillr/
 **AI Cover Letters:**
 1. **Job Scraping**: Extracts job description, company name, and title from page
 2. **Profile Analysis**: Gathers relevant info from your saved profile
-3. **AI Generation**: Sends context to Google Gemini API
+3. **AI Generation**: Sends context to Groq API (Llama 3.3 70B)
 4. **Personalization**: AI crafts cover letter matching job requirements
-5. **Auto-fill**: Generated content populates the cover letter field
+5. **Auto-fill**: Generated content populates the cover letter field in seconds
 
 ## Supported Platforms
 
@@ -201,12 +205,12 @@ Fillr works on major Applicant Tracking Systems (ATS):
 
 - All profile data is stored locally using Chrome's sync storage
 - API keys are stored locally in your browser only
-- Job descriptions are sent to Google Gemini API only during cover letter generation
+- Job descriptions are sent to Groq API only during cover letter generation
 - No tracking or analytics
 - No data collection by Fillr
 - Open source - review the code yourself
 
-**Note:** When using AI features, job descriptions are sent to Google's Gemini API for processing. This is required for cover letter generation. Your API key and profile data remain in your browser.
+**Note:** When using AI features, job descriptions are sent to Groq API for processing. This is required for cover letter generation. Your API key and profile data remain in your browser.
 
 ## Development
 
@@ -249,10 +253,11 @@ Fillr works on major Applicant Tracking Systems (ATS):
 - ✅ Keyboard shortcuts (Alt+F, Alt+P)
 
 ### v1.3 (Current)
-- ✅ AI-powered cover letter generation with Google Gemini
+- ✅ AI-powered cover letter generation with Groq
 - ✅ Smart job description scraper
 - ✅ Settings tab for API key management
-- ✅ Personalized cover letters based on profile + job posting
+- ✅ Personalized cover letters using Llama 3.3 70B
+- ✅ Lightning-fast generation (10x faster than competitors)
 
 ### Future Versions
 - AI-powered custom question answering
