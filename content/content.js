@@ -9,6 +9,9 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   } else if (request.action === 'previewForm') {
     const result = previewFormFields(request.profile);
     sendResponse(result);
+  } else if (request.action === 'scrapeJobDescription') {
+    const result = scrapeJobDescription();
+    sendResponse(result);
   }
   return true; // Keep message channel open for async response
 });
@@ -550,3 +553,113 @@ async function showNotification(message, type = 'success') {
 
 // Log that content script is loaded
 console.log('✓ Fillr extension loaded | Alt+F to fill | Alt+P to preview');
+
+/**
+ * Scrape job description from the current page
+ */
+function scrapeJobDescription() {
+  try {
+    let jobDescription = '';
+    let companyName = '';
+    let jobTitle = '';
+    
+    // Strategy 1: Try common job board selectors
+    const commonSelectors = [
+      // Greenhouse
+      '#content .app-wrapper, #app-body',
+      // Lever
+      '.posting-headline, .posting-description, .section-wrapper',
+      // Workday
+      '[data-automation-id="jobPostingDescription"]',
+      // LinkedIn
+      '.show-more-less-html__markup',
+      // Indeed
+      '#jobDescriptionText',
+      // Generic
+      '[class*="job-description"], [class*="description"], [id*="description"]',
+      'main article, main section',
+      '[role="main"]'
+    ];
+
+    for (const selector of commonSelectors) {
+      const element = document.querySelector(selector);
+      if (element && element.textContent.trim().length > 100) {
+        jobDescription = element.textContent.trim();
+        break;
+      }
+    }
+
+    // Strategy 2: If no specific selector found, get main content
+    if (!jobDescription) {
+      const main = document.querySelector('main') || document.querySelector('[role="main"]') || document.body;
+      jobDescription = main.textContent.trim();
+    }
+
+    // Extract company name from various sources
+    const companySelectors = [
+      '[class*="company-name"]',
+      '[class*="employer"]',
+      '[data-automation-id="company"]',
+      '.topcard__org-name',
+      'meta[property="og:site_name"]',
+      'meta[name="author"]'
+    ];
+
+    for (const selector of companySelectors) {
+      const element = document.querySelector(selector);
+      if (element) {
+        companyName = element.textContent || element.getAttribute('content') || '';
+        companyName = companyName.trim();
+        if (companyName) break;
+      }
+    }
+
+    // Extract job title
+    const titleSelectors = [
+      'h1',
+      '[class*="job-title"]',
+      '[class*="posting-headline"]',
+      '[data-automation-id="jobPostingHeader"]',
+      '.topcard__title',
+      'meta[property="og:title"]'
+    ];
+
+    for (const selector of titleSelectors) {
+      const element = document.querySelector(selector);
+      if (element) {
+        jobTitle = element.textContent || element.getAttribute('content') || '';
+        jobTitle = jobTitle.trim();
+        if (jobTitle) break;
+      }
+    }
+
+    // Clean up description (remove extra whitespace)
+    jobDescription = jobDescription
+      .replace(/\s+/g, ' ')
+      .replace(/\n\s*\n/g, '\n')
+      .trim();
+
+    // Limit description length (Gemini has context limits)
+    if (jobDescription.length > 8000) {
+      jobDescription = jobDescription.substring(0, 8000) + '...';
+    }
+
+    return {
+      success: true,
+      data: {
+        jobDescription,
+        companyName: companyName || 'the company',
+        jobTitle: jobTitle || 'this position',
+        pageUrl: window.location.href,
+        pageTitle: document.title
+      }
+    };
+
+  } catch (error) {
+    console.error('Error scraping job description:', error);
+    return {
+      success: false,
+      message: 'Error scraping job description: ' + error.message
+    };
+  }
+}

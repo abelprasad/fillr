@@ -23,6 +23,7 @@
     <div class="tabs">
       <button class="tab-btn active" data-tab="main">Main</button>
       <button class="tab-btn" data-tab="history">History</button>
+      <button class="tab-btn" data-tab="settings">Settings</button>
     </div>
 
     <div id="profileCompleteness" class="profile-completeness">0% complete (0/25 fields)</div>
@@ -44,6 +45,15 @@
           Edit
         </button>
       </div>
+
+      <div class="ai-section">
+        <button id="generateCoverLetterBtn" class="btn btn-ai">
+          <span class="btn-icon">✨</span>
+          Generate Cover Letter with AI
+        </button>
+        <p class="ai-hint">AI will analyze the job posting and create a personalized cover letter</p>
+      </div>
+
       <div class="keyboard-hint">Tip: Press Alt+F to fill • Alt+P to preview</div>
 
     <form id="profileForm" class="hidden">
@@ -224,6 +234,59 @@
         <div class="empty-state">
           <p>No applications tracked yet.</p>
           <p class="empty-hint">Use "Fill Form" to automatically log your applications.</p>
+        </div>
+      </div>
+    </div>
+
+    <div id="settingsView" class="tab-content">
+      <div class="settings-section">
+        <h2>AI Settings</h2>
+        <p class="settings-description">Enable AI-powered cover letter generation with Google Gemini</p>
+
+        <div class="form-group">
+          <label for="geminiApiKey">Google Gemini API Key</label>
+          <div class="api-key-input-group">
+            <input type="password" id="geminiApiKey" name="geminiApiKey" placeholder="Enter your Gemini API key">
+            <button type="button" id="toggleApiKeyBtn" class="btn-icon" title="Show/Hide API key">👁</button>
+          </div>
+          <p class="field-hint">
+            Get your free API key at <a href="https://ai.google.dev/" target="_blank">ai.google.dev</a>
+            <br>Free tier: 1,500 requests/day
+          </p>
+        </div>
+
+        <div class="form-actions">
+          <button type="button" id="saveApiKeyBtn" class="btn btn-primary">Save API Key</button>
+          <button type="button" id="testApiKeyBtn" class="btn btn-secondary">Test Connection</button>
+        </div>
+
+        <div id="apiKeyStatus" class="api-key-status hidden"></div>
+      </div>
+
+      <div class="settings-section">
+        <h2>About AI Features</h2>
+        <div class="feature-list">
+          <div class="feature-item">
+            <span class="feature-icon">✨</span>
+            <div>
+              <strong>Smart Cover Letters</strong>
+              <p>Generate personalized cover letters based on job descriptions</p>
+            </div>
+          </div>
+          <div class="feature-item">
+            <span class="feature-icon">🎯</span>
+            <div>
+              <strong>Contextual Responses</strong>
+              <p>AI analyzes job postings and tailors content to match</p>
+            </div>
+          </div>
+          <div class="feature-item">
+            <span class="feature-icon">🔒</span>
+            <div>
+              <strong>Privacy First</strong>
+              <p>API key stored locally, data never saved on external servers</p>
+            </div>
+          </div>
         </div>
       </div>
     </div>

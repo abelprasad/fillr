@@ -9,6 +9,7 @@ const messageDiv = document.getElementById('message');
 const tabBtns = document.querySelectorAll('.tab-btn');
 const mainView = document.getElementById('mainView');
 const historyView = document.getElementById('historyView');
+const settingsView = document.getElementById('settingsView');
 
 // History elements
 const historyList = document.getElementById('historyList');
@@ -16,6 +17,14 @@ const exportHistoryBtn = document.getElementById('exportHistoryBtn');
 const clearHistoryBtn = document.getElementById('clearHistoryBtn');
 const totalAppsSpan = document.getElementById('totalApps');
 const weekAppsSpan = document.getElementById('weekApps');
+
+// AI/Settings elements
+const generateCoverLetterBtn = document.getElementById('generateCoverLetterBtn');
+const geminiApiKeyInput = document.getElementById('geminiApiKey');
+const toggleApiKeyBtn = document.getElementById('toggleApiKeyBtn');
+const saveApiKeyBtn = document.getElementById('saveApiKeyBtn');
+const testApiKeyBtn = document.getElementById('testApiKeyBtn');
+const apiKeyStatusDiv = document.getElementById('apiKeyStatus');
 
 // Profile field IDs
 const profileFields = [
@@ -33,6 +42,7 @@ document.addEventListener('DOMContentLoaded', () => {
   loadProfile();
   loadHistory();
   loadTheme();
+  loadApiKey();
 });
 
 // Event listeners
@@ -51,6 +61,12 @@ tabBtns.forEach(btn => {
 // History actions
 exportHistoryBtn.addEventListener('click', exportHistory);
 clearHistoryBtn.addEventListener('click', clearHistory);
+
+// AI/Settings actions
+generateCoverLetterBtn.addEventListener('click', generateCoverLetter);
+toggleApiKeyBtn.addEventListener('click', toggleApiKeyVisibility);
+saveApiKeyBtn.addEventListener('click', saveApiKey);
+testApiKeyBtn.addEventListener('click', testApiKey);
 
 // Load saved profile from storage
 async function loadProfile() {
@@ -280,13 +296,17 @@ function switchTab(tabName) {
   });
 
   // Update tab content
+  mainView.classList.remove('active');
+  historyView.classList.remove('active');
+  settingsView.classList.remove('active');
+
   if (tabName === 'main') {
     mainView.classList.add('active');
-    historyView.classList.remove('active');
   } else if (tabName === 'history') {
-    mainView.classList.remove('active');
     historyView.classList.add('active');
     loadHistory(); // Refresh history when viewing
+  } else if (tabName === 'settings') {
+    settingsView.classList.add('active');
   }
 }
 
@@ -528,6 +548,281 @@ function escapeHtml(text) {
   const div = document.createElement('div');
   div.textContent = text;
   return div.innerHTML;
+}
+
+// ===== AI FUNCTIONS =====
+
+// Load API key from storage
+async function loadApiKey() {
+  try {
+    const result = await chrome.storage.sync.get('geminiApiKey');
+    if (result.geminiApiKey) {
+      geminiApiKeyInput.value = result.geminiApiKey;
+    }
+  } catch (error) {
+    console.error('Error loading API key:', error);
+  }
+}
+
+// Toggle API key visibility
+function toggleApiKeyVisibility() {
+  const type = geminiApiKeyInput.type === 'password' ? 'text' : 'password';
+  geminiApiKeyInput.type = type;
+  toggleApiKeyBtn.textContent = type === 'password' ? '👁' : '🙈';
+}
+
+// Save API key to storage
+async function saveApiKey() {
+  const apiKey = geminiApiKeyInput.value.trim();
+
+  if (!apiKey) {
+    showApiKeyStatus('Please enter an API key', 'error');
+    return;
+  }
+
+  try {
+    await chrome.storage.sync.set({ geminiApiKey: apiKey });
+    showApiKeyStatus('✓ API key saved successfully', 'success');
+  } catch (error) {
+    console.error('Error saving API key:', error);
+    showApiKeyStatus('Error saving API key', 'error');
+  }
+}
+
+// Test API key connection
+async function testApiKey() {
+  const apiKey = geminiApiKeyInput.value.trim();
+
+  if (!apiKey) {
+    showApiKeyStatus('Please enter an API key first', 'error');
+    return;
+  }
+
+  testApiKeyBtn.disabled = true;
+  testApiKeyBtn.textContent = 'Testing...';
+
+  try {
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{
+            parts: [{ text: 'Hello' }]
+          }]
+        })
+      }
+    );
+
+    if (response.ok) {
+      showApiKeyStatus('✓ API key is valid and working!', 'success');
+    } else {
+      const error = await response.json();
+      showApiKeyStatus(`Error: ${error.error?.message || 'Invalid API key'}`, 'error');
+    }
+  } catch (error) {
+    showApiKeyStatus('Error testing API key: ' + error.message, 'error');
+  } finally {
+    testApiKeyBtn.disabled = false;
+    testApiKeyBtn.textContent = 'Test Connection';
+  }
+}
+
+// Show API key status message
+function showApiKeyStatus(message, type) {
+  apiKeyStatusDiv.textContent = message;
+  apiKeyStatusDiv.className = `api-key-status ${type}`;
+  apiKeyStatusDiv.classList.remove('hidden');
+
+  // Auto-hide after 5 seconds
+  setTimeout(() => {
+    apiKeyStatusDiv.classList.add('hidden');
+  }, 5000);
+}
+
+// Generate cover letter using Gemini AI
+async function generateCoverLetter() {
+  try {
+    // Check if API key is set
+    const result = await chrome.storage.sync.get('geminiApiKey');
+    const apiKey = result.geminiApiKey;
+
+    if (!apiKey) {
+      showMessage('Please add your Gemini API key in Settings first', 'warning');
+      switchTab('settings');
+      return;
+    }
+
+    // Check if profile exists
+    const profileResult = await chrome.storage.sync.get('profile');
+    const profile = profileResult.profile;
+
+    if (!profile || Object.keys(profile).length === 0) {
+      showMessage('Please create your profile first', 'warning');
+      toggleProfileForm();
+      return;
+    }
+
+    // Get the active tab
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+
+    if (!tab || !tab.id) {
+      showMessage('Unable to access current tab', 'error');
+      return;
+    }
+
+    // Show loading state
+    generateCoverLetterBtn.disabled = true;
+    const originalText = generateCoverLetterBtn.innerHTML;
+    generateCoverLetterBtn.innerHTML = '<span class="btn-spinner">⏳</span> Analyzing job posting...';
+
+    // Try to inject content script if needed
+    try {
+      await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        files: ['utils/fieldMatchers.js', 'content/content.js']
+      });
+    } catch (injectError) {
+      console.log('Script injection attempt:', injectError.message);
+    }
+
+    // Scrape job description from page
+    chrome.tabs.sendMessage(
+      tab.id,
+      { action: 'scrapeJobDescription' },
+      async (response) => {
+        if (chrome.runtime.lastError) {
+          console.error('Error:', chrome.runtime.lastError);
+          showMessage('Please reload this page and try again', 'error');
+          generateCoverLetterBtn.disabled = false;
+          generateCoverLetterBtn.innerHTML = originalText;
+          return;
+        }
+
+        if (!response || !response.success) {
+          showMessage('Could not extract job description from this page', 'error');
+          generateCoverLetterBtn.disabled = false;
+          generateCoverLetterBtn.innerHTML = originalText;
+          return;
+        }
+
+        const { jobDescription, companyName, jobTitle } = response.data;
+
+        // Update loading message
+        generateCoverLetterBtn.innerHTML = '<span class="btn-spinner">✨</span> Generating cover letter...';
+
+        // Call Gemini API to generate cover letter
+        try {
+          const coverLetter = await callGeminiAPI(apiKey, profile, jobDescription, companyName, jobTitle);
+
+          // Update cover letter field in profile
+          const coverLetterField = document.getElementById('coverLetter');
+          if (coverLetterField) {
+            coverLetterField.value = coverLetter;
+
+            // Show profile form if it's hidden
+            if (profileForm.classList.contains('hidden')) {
+              profileForm.classList.remove('hidden');
+              toggleFormBtn.textContent = 'Hide Form';
+            }
+
+            // Scroll to cover letter field
+            coverLetterField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+            // Highlight the field
+            coverLetterField.style.border = '2px solid var(--success)';
+            setTimeout(() => {
+              coverLetterField.style.border = '';
+            }, 2000);
+
+            showMessage('✨ Cover letter generated successfully!', 'success');
+          } else {
+            // If field not found, just show success
+            showMessage('✨ Cover letter generated! Check the profile form.', 'success');
+          }
+
+        } catch (error) {
+          console.error('Error generating cover letter:', error);
+          showMessage('Error generating cover letter: ' + error.message, 'error');
+        } finally {
+          generateCoverLetterBtn.disabled = false;
+          generateCoverLetterBtn.innerHTML = originalText;
+        }
+      }
+    );
+
+  } catch (error) {
+    console.error('Error in generateCoverLetter:', error);
+    showMessage('Error: ' + error.message, 'error');
+    generateCoverLetterBtn.disabled = false;
+  }
+}
+
+// Call Gemini API to generate cover letter
+async function callGeminiAPI(apiKey, profile, jobDescription, companyName, jobTitle) {
+  const prompt = `You are a professional career coach helping someone write a cover letter for a job application.
+
+APPLICANT PROFILE:
+- Name: ${profile.firstName || ''} ${profile.lastName || ''}
+- Email: ${profile.email || ''}
+- University: ${profile.university || 'Not specified'}
+- Major: ${profile.major || 'Not specified'}
+- Current/Recent Company: ${profile.currentCompany || 'Not specified'}
+- Current/Recent Title: ${profile.currentTitle || 'Not specified'}
+- Years of Experience: ${profile.yearsOfExperience || 'Not specified'}
+- LinkedIn: ${profile.linkedin || 'Not specified'}
+- GitHub: ${profile.github || 'Not specified'}
+
+JOB DETAILS:
+- Company: ${companyName}
+- Position: ${jobTitle}
+
+JOB DESCRIPTION:
+${jobDescription}
+
+Write a professional, compelling cover letter for this job application. The cover letter should:
+1. Be concise (250-350 words)
+2. Highlight relevant skills and experiences from the applicant's profile
+3. Show genuine enthusiasm for the role and company
+4. Be specific about why they're a good fit
+5. Have a professional but warm tone
+6. Include a strong opening and closing
+
+DO NOT include:
+- The applicant's address or date at the top
+- "Dear Hiring Manager" or similar salutation
+- A signature block at the end
+- Just write the body paragraphs of the cover letter
+
+Write the cover letter now:`;
+
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{
+          parts: [{ text: prompt }]
+        }],
+        generationConfig: {
+          temperature: 0.7,
+          maxOutputTokens: 1000,
+        }
+      })
+    }
+  );
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error?.message || 'API request failed');
+  }
+
+  const data = await response.json();
+  const coverLetter = data.candidates[0].content.parts[0].text.trim();
+
+  return coverLetter;
 }
 
 // ===== DARK MODE FUNCTIONS =====
