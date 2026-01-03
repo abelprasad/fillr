@@ -510,4 +510,4 @@ function showNotification(message, type = 'success') {
 }
 
 // Log that content script is loaded
-console.log('Fillr content script loaded (Alt+F to fill)');
+console.log('✓ Fillr extension loaded | Alt+F to fill | Alt+P to preview');

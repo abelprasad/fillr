@@ -146,6 +146,17 @@ async function fillForm() {
     fillBtn.innerHTML = '<span class="btn-spinner">⏳</span> Filling...';
     fillBtn.disabled = true;
 
+    // Try to inject content script if needed
+    try {
+      await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        files: ['utils/fieldMatchers.js', 'content/content.js']
+      });
+    } catch (injectError) {
+      // Script might already be injected, continue
+      console.log('Script injection attempt:', injectError.message);
+    }
+
     // Send message to content script
     chrome.tabs.sendMessage(
       tab.id,
@@ -157,7 +168,7 @@ async function fillForm() {
 
         if (chrome.runtime.lastError) {
           console.error('Error:', chrome.runtime.lastError);
-          showMessage('Unable to fill form on this page', 'error');
+          showMessage('Please reload this page and try again', 'error');
           return;
         }
 
@@ -203,6 +214,17 @@ async function previewForm() {
       return;
     }
 
+    // Try to inject content script if needed
+    try {
+      await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        files: ['utils/fieldMatchers.js', 'content/content.js']
+      });
+    } catch (injectError) {
+      // Script might already be injected, continue
+      console.log('Script injection attempt:', injectError.message);
+    }
+
     // Send preview message to content script
     chrome.tabs.sendMessage(
       tab.id,
@@ -210,7 +232,7 @@ async function previewForm() {
       (response) => {
         if (chrome.runtime.lastError) {
           console.error('Error:', chrome.runtime.lastError);
-          showMessage('Unable to preview on this page', 'error');
+          showMessage('Please reload this page and try again', 'error');
           return;
         }
 
@@ -221,12 +243,14 @@ async function previewForm() {
           } else {
             showMessage('No matching fields found on this page', 'warning');
           }
+        } else {
+          showMessage('Unable to preview on this page', 'error');
         }
       }
     );
   } catch (error) {
     console.error('Error previewing form:', error);
-    showMessage('Error previewing form', 'error');
+    showMessage('Error previewing form: ' + error.message, 'error');
   }
 }
 
