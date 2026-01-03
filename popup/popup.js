@@ -79,6 +79,13 @@ async function loadProfile() {
 async function saveProfile(event) {
   event.preventDefault();
 
+  // Validate all fields first
+  const validationErrors = validateProfile();
+  if (validationErrors.length > 0) {
+    showMessage(`Please fix ${validationErrors.length} validation error${validationErrors.length > 1 ? 's' : ''}`, 'error');
+    return;
+  }
+
   const profile = {};
   profileFields.forEach(fieldId => {
     const element = document.getElementById(fieldId);
@@ -92,6 +99,7 @@ async function saveProfile(event) {
     showMessage('Profile saved successfully', 'success');
     toggleFormBtn.textContent = 'Edit Profile';
     profileForm.classList.add('hidden');
+    updateProfileCompleteness();
   } catch (error) {
     console.error('Error saving profile:', error);
     showMessage('Error saving profile', 'error');
@@ -425,3 +433,220 @@ function escapeHtml(text) {
   div.textContent = text;
   return div.innerHTML;
 }
+
+// ===== VALIDATION FUNCTIONS =====
+
+// Validate entire profile
+function validateProfile() {
+  const errors = [];
+
+  // Email validation
+  const emailInput = document.getElementById('email');
+  if (emailInput && emailInput.value && !validateEmail(emailInput.value)) {
+    setFieldError(emailInput, 'Invalid email format');
+    errors.push('email');
+  } else if (emailInput) {
+    clearFieldError(emailInput);
+  }
+
+  // Phone validation
+  const phoneInput = document.getElementById('phone');
+  if (phoneInput && phoneInput.value && !validatePhone(phoneInput.value)) {
+    setFieldError(phoneInput, 'Invalid phone format');
+    errors.push('phone');
+  } else if (phoneInput) {
+    clearFieldError(phoneInput);
+  }
+
+  // LinkedIn URL validation
+  const linkedinInput = document.getElementById('linkedin');
+  if (linkedinInput && linkedinInput.value && !validateURL(linkedinInput.value)) {
+    setFieldError(linkedinInput, 'Invalid URL format');
+    errors.push('linkedin');
+  } else if (linkedinInput) {
+    clearFieldError(linkedinInput);
+  }
+
+  // GitHub URL validation
+  const githubInput = document.getElementById('github');
+  if (githubInput && githubInput.value && !validateURL(githubInput.value)) {
+    setFieldError(githubInput, 'Invalid URL format');
+    errors.push('github');
+  } else if (githubInput) {
+    clearFieldError(githubInput);
+  }
+
+  // Portfolio URL validation
+  const portfolioInput = document.getElementById('portfolio');
+  if (portfolioInput && portfolioInput.value && !validateURL(portfolioInput.value)) {
+    setFieldError(portfolioInput, 'Invalid URL format');
+    errors.push('portfolio');
+  } else if (portfolioInput) {
+    clearFieldError(portfolioInput);
+  }
+
+  // GPA validation
+  const gpaInput = document.getElementById('gpa');
+  if (gpaInput && gpaInput.value && !validateGPA(gpaInput.value)) {
+    setFieldError(gpaInput, 'GPA must be between 0.0 and 4.0');
+    errors.push('gpa');
+  } else if (gpaInput) {
+    clearFieldError(gpaInput);
+  }
+
+  return errors;
+}
+
+// Email validation
+function validateEmail(email) {
+  const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return re.test(email);
+}
+
+// Phone validation (flexible format)
+function validatePhone(phone) {
+  // Remove all non-digits
+  const digits = phone.replace(/\D/g, '');
+  // Should have 10-11 digits (with or without country code)
+  return digits.length >= 10 && digits.length <= 11;
+}
+
+// URL validation
+function validateURL(url) {
+  try {
+    new URL(url);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// GPA validation
+function validateGPA(gpa) {
+  const num = parseFloat(gpa);
+  return !isNaN(num) && num >= 0 && num <= 4.0;
+}
+
+// Set field error
+function setFieldError(element, message) {
+  element.classList.add('error');
+  element.setAttribute('title', message);
+
+  // Add or update error message
+  let errorDiv = element.parentElement.querySelector('.error-message');
+  if (!errorDiv) {
+    errorDiv = document.createElement('div');
+    errorDiv.className = 'error-message';
+    element.parentElement.appendChild(errorDiv);
+  }
+  errorDiv.textContent = message;
+}
+
+// Clear field error
+function clearFieldError(element) {
+  element.classList.remove('error');
+  element.removeAttribute('title');
+
+  const errorDiv = element.parentElement.querySelector('.error-message');
+  if (errorDiv) {
+    errorDiv.remove();
+  }
+}
+
+// Real-time validation on blur
+function setupRealtimeValidation() {
+  // Email
+  const emailInput = document.getElementById('email');
+  if (emailInput) {
+    emailInput.addEventListener('blur', () => {
+      if (emailInput.value && !validateEmail(emailInput.value)) {
+        setFieldError(emailInput, 'Invalid email format');
+      } else {
+        clearFieldError(emailInput);
+      }
+    });
+  }
+
+  // Phone with auto-formatting
+  const phoneInput = document.getElementById('phone');
+  if (phoneInput) {
+    phoneInput.addEventListener('blur', () => {
+      if (phoneInput.value) {
+        // Auto-format phone number
+        const formatted = formatPhoneNumber(phoneInput.value);
+        if (formatted) {
+          phoneInput.value = formatted;
+          clearFieldError(phoneInput);
+        } else {
+          setFieldError(phoneInput, 'Invalid phone format');
+        }
+      }
+    });
+  }
+
+  // URLs
+  ['linkedin', 'github', 'portfolio'].forEach(fieldId => {
+    const input = document.getElementById(fieldId);
+    if (input) {
+      input.addEventListener('blur', () => {
+        if (input.value && !validateURL(input.value)) {
+          setFieldError(input, 'Invalid URL format');
+        } else {
+          clearFieldError(input);
+        }
+      });
+    }
+  });
+
+  // GPA
+  const gpaInput = document.getElementById('gpa');
+  if (gpaInput) {
+    gpaInput.addEventListener('blur', () => {
+      if (gpaInput.value && !validateGPA(gpaInput.value)) {
+        setFieldError(gpaInput, 'GPA must be between 0.0 and 4.0');
+      } else {
+        clearFieldError(gpaInput);
+      }
+    });
+  }
+}
+
+// Format phone number to (XXX) XXX-XXXX
+function formatPhoneNumber(phone) {
+  const digits = phone.replace(/\D/g, '');
+
+  if (digits.length === 10) {
+    return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+  } else if (digits.length === 11 && digits[0] === '1') {
+    return `(${digits.slice(1, 4)}) ${digits.slice(4, 7)}-${digits.slice(7)}`;
+  }
+
+  return null;
+}
+
+// Update profile completeness indicator
+function updateProfileCompleteness() {
+  const totalFields = profileFields.length;
+  let filledFields = 0;
+
+  profileFields.forEach(fieldId => {
+    const element = document.getElementById(fieldId);
+    if (element && element.value && element.value.trim() !== '') {
+      filledFields++;
+    }
+  });
+
+  const percentage = Math.round((filledFields / totalFields) * 100);
+
+  // Update completeness display if it exists
+  const completenessDiv = document.getElementById('profileCompleteness');
+  if (completenessDiv) {
+    completenessDiv.textContent = `${percentage}% complete (${filledFields}/${totalFields} fields)`;
+  }
+}
+
+// Initialize validation when form is shown
+document.addEventListener('DOMContentLoaded', () => {
+  setupRealtimeValidation();
+  updateProfileCompleteness();
+});

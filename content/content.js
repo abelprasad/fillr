@@ -176,5 +176,101 @@ function highlightField(element) {
   }, 1000);
 }
 
+// Keyboard shortcut: Alt+F to fill form
+document.addEventListener('keydown', async (event) => {
+  // Check for Alt+F (or Option+F on Mac)
+  if (event.altKey && event.key.toLowerCase() === 'f') {
+    event.preventDefault();
+
+    try {
+      // Get profile from storage
+      const result = await chrome.storage.sync.get('profile');
+      const profile = result.profile;
+
+      if (!profile || Object.keys(profile).length === 0) {
+        showNotification('Please create a profile first', 'warning');
+        return;
+      }
+
+      // Fill the form
+      const fillResult = fillFormFields(profile);
+
+      // Show notification
+      if (fillResult.success && fillResult.fieldsFilledCount > 0) {
+        showNotification(
+          `Filled ${fillResult.fieldsFilledCount} field${fillResult.fieldsFilledCount !== 1 ? 's' : ''}`,
+          'success'
+        );
+      } else if (fillResult.fieldsFilledCount === 0) {
+        showNotification('No matching fields found on this page', 'warning');
+      } else {
+        showNotification('Failed to fill form', 'error');
+      }
+    } catch (error) {
+      console.error('Error with keyboard shortcut:', error);
+      showNotification('Error filling form', 'error');
+    }
+  }
+});
+
+// Show notification on page
+function showNotification(message, type = 'success') {
+  // Remove existing notification if any
+  const existing = document.getElementById('fillr-notification');
+  if (existing) {
+    existing.remove();
+  }
+
+  // Create notification element
+  const notification = document.createElement('div');
+  notification.id = 'fillr-notification';
+  notification.textContent = message;
+
+  // Style the notification
+  Object.assign(notification.style, {
+    position: 'fixed',
+    top: '20px',
+    right: '20px',
+    padding: '12px 20px',
+    borderRadius: '6px',
+    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+    fontSize: '14px',
+    fontWeight: '500',
+    zIndex: '999999',
+    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+    transition: 'all 0.3s ease',
+    opacity: '0',
+    transform: 'translateY(-10px)'
+  });
+
+  // Set color based on type
+  if (type === 'success') {
+    notification.style.backgroundColor = '#10b981';
+    notification.style.color = 'white';
+  } else if (type === 'error') {
+    notification.style.backgroundColor = '#ef4444';
+    notification.style.color = 'white';
+  } else if (type === 'warning') {
+    notification.style.backgroundColor = '#f59e0b';
+    notification.style.color = 'white';
+  }
+
+  // Add to page
+  document.body.appendChild(notification);
+
+  // Animate in
+  setTimeout(() => {
+    notification.style.opacity = '1';
+    notification.style.transform = 'translateY(0)';
+  }, 10);
+
+  // Remove after 3 seconds
+  setTimeout(() => {
+    notification.style.opacity = '0';
+    notification.style.transform = 'translateY(-10px)';
+    setTimeout(() => notification.remove(), 300);
+  }, 3000);
+}
+
 // Log that content script is loaded
-console.log('Fillr content script loaded');
+console.log('Fillr content script loaded (Alt+F to fill)');

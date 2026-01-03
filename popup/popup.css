@@ -446,3 +446,54 @@ header h1 {
   font-weight: 500;
   color: #059669;
 }
+
+/* Profile Completeness Indicator */
+.profile-completeness {
+  text-align: center;
+  padding: 8px 12px;
+  margin-bottom: 15px;
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  color: white;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 6px;
+  box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
+}
+
+/* Validation Styles */
+.form-group input.error,
+.form-group select.error,
+.form-group textarea.error {
+  border-color: #dc2626;
+  background-color: #fef2f2;
+}
+
+.form-group input.error:focus,
+.form-group select.error:focus,
+.form-group textarea.error:focus {
+  border-color: #dc2626;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+}
+
+.error-message {
+  color: #dc2626;
+  font-size: 11px;
+  margin-top: 4px;
+  font-weight: 500;
+}
+
+/* Valid field indication */
+.form-group input:valid:not(:placeholder-shown),
+.form-group select:valid:not([value=""]),
+.form-group textarea:valid:not(:placeholder-shown) {
+  border-color: #10b981;
+}
+
+/* Keyboard shortcut hint */
+.keyboard-hint {
+  font-size: 11px;
+  color: #9ca3af;
+  text-align: center;
+  margin-top: 10px;
+  font-style: italic;
+}
