@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Fillr",
-  "version": "1.0.0",
-  "description": "One-click autofill for job and internship applications",
+  "version": "1.4.0",
+  "description": "AI-powered autofill for job applications with smart cover letters and question answering",
   "permissions": [
     "storage",
     "activeTab",

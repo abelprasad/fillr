@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Question Answering Test - TechCorp Application</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 40px 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding-bottom: 30px;
+            border-bottom: 2px solid #e5e7eb;
+        }
+
+        .company-logo {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+
+        h1 {
+            color: #1f2937;
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+
+        .job-title {
+            color: #6366f1;
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .instructions {
+            background: #f0f9ff;
+            border-left: 4px solid #3b82f6;
+            padding: 16px;
+            margin-bottom: 30px;
+            border-radius: 4px;
+        }
+
+        .instructions h3 {
+            color: #1e40af;
+            margin-bottom: 8px;
+            font-size: 16px;
+        }
+
+        .instructions p {
+            color: #1e3a8a;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .instructions code {
+            background: #dbeafe;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: monospace;
+            color: #1e40af;
+            font-weight: 600;
+        }
+
+        .question-section {
+            margin-bottom: 32px;
+        }
+
+        .question-label {
+            display: block;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 8px;
+            font-size: 15px;
+        }
+
+        .question-hint {
+            display: block;
+            color: #6b7280;
+            font-size: 13px;
+            margin-bottom: 12px;
+            font-style: italic;
+        }
+
+        textarea, input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-size: 14px;
+            resize: vertical;
+            transition: all 0.3s;
+        }
+
+        textarea:focus, input[type="text"]:focus {
+            outline: none;
+            border-color: #6366f1;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+
+        textarea {
+            min-height: 120px;
+        }
+
+        .short-answer {
+            min-height: 60px !important;
+        }
+
+        .section-divider {
+            height: 2px;
+            background: linear-gradient(to right, #e5e7eb, transparent);
+            margin: 40px 0;
+        }
+
+        .tip {
+            background: #fef3c7;
+            border-left: 4px solid #f59e0b;
+            padding: 12px;
+            border-radius: 4px;
+            margin-top: 30px;
+        }
+
+        .tip strong {
+            color: #92400e;
+        }
+
+        .tip p {
+            color: #78350f;
+            font-size: 14px;
+            margin-top: 4px;
+        }
+
+        .required {
+            color: #dc2626;
+            margin-left: 4px;
+        }
+
+        .word-count {
+            text-align: right;
+            color: #9ca3af;
+            font-size: 12px;
+            margin-top: 4px;
+        }
+
+        .submit-section {
+            margin-top: 40px;
+            padding-top: 30px;
+            border-top: 2px solid #e5e7eb;
+            text-align: center;
+        }
+
+        .submit-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 14px 40px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="company-logo">🚀</div>
+            <h1>TechCorp Application</h1>
+            <div class="job-title">Senior Software Engineer</div>
+        </div>
+
+        <div class="instructions">
+            <h3>🎯 How to Test "Fillr Up"</h3>
+            <p>
+                1. Make sure your profile is filled out<br>
+                2. Set up your Groq API key in Settings<br>
+                3. <strong>Right-click</strong> any question field below<br>
+                4. Select <code>Fillr Up ✨</code> from the menu<br>
+                5. Watch AI generate a personalized answer!
+            </p>
+        </div>
+
+        <!-- Question 1: Why This Company -->
+        <div class="question-section">
+            <label for="whyCompany" class="question-label">
+                Why do you want to work at TechCorp? <span class="required">*</span>
+            </label>
+            <span class="question-hint">Tell us what excites you about joining our team</span>
+            <textarea
+                id="whyCompany"
+                name="why_company"
+                placeholder="Share your motivation for applying to TechCorp..."
+            ></textarea>
+            <div class="word-count">Recommended: 50-150 words</div>
+        </div>
+
+        <!-- Question 2: Tell Us About Yourself -->
+        <div class="question-section">
+            <label for="aboutYou" class="question-label">
+                Tell us about yourself <span class="required">*</span>
+            </label>
+            <span class="question-hint">Introduce yourself and highlight your background</span>
+            <textarea
+                id="aboutYou"
+                name="about_yourself"
+                placeholder="Give us an overview of your professional background..."
+            ></textarea>
+            <div class="word-count">Recommended: 75-200 words</div>
+        </div>
+
+        <div class="section-divider"></div>
+
+        <!-- Question 3: Challenging Project -->
+        <div class="question-section">
+            <label for="challengingProject" class="question-label">
+                Describe a challenging technical project you've worked on
+            </label>
+            <span class="question-hint">What was the challenge and how did you overcome it?</span>
+            <textarea
+                id="challengingProject"
+                name="challenging_project"
+                aria-label="Describe a challenging technical project"
+            ></textarea>
+        </div>
+
+        <!-- Question 4: Strengths -->
+        <div class="question-section">
+            <label for="strengths" class="question-label">
+                What are your greatest strengths as a software engineer?
+            </label>
+            <textarea
+                id="strengths"
+                name="strengths"
+                class="short-answer"
+                placeholder="List 2-3 key strengths and explain why..."
+            ></textarea>
+        </div>
+
+        <!-- Question 5: Career Goals -->
+        <div class="question-section">
+            <label for="careerGoals" class="question-label">
+                Where do you see yourself in 5 years?
+            </label>
+            <textarea
+                id="careerGoals"
+                name="career_goals"
+                class="short-answer"
+            ></textarea>
+        </div>
+
+        <div class="section-divider"></div>
+
+        <!-- Question 6: Why Should We Hire You -->
+        <div class="question-section">
+            <label for="whyHire" class="question-label">
+                Why should we hire you for this position?
+            </label>
+            <span class="question-hint">What unique value would you bring to our team?</span>
+            <textarea
+                id="whyHire"
+                name="why_hire_you"
+            ></textarea>
+        </div>
+
+        <!-- Question 7: Technical Experience (with placeholder) -->
+        <div class="question-section">
+            <label for="techExperience" class="question-label">
+                Technical Skills & Experience
+            </label>
+            <textarea
+                id="techExperience"
+                name="technical_experience"
+                placeholder="Describe your experience with relevant technologies and frameworks..."
+            ></textarea>
+        </div>
+
+        <!-- Question 8: Teamwork Example -->
+        <div class="question-section">
+            <label for="teamwork" class="question-label">
+                Give an example of when you worked effectively in a team
+            </label>
+            <textarea
+                id="teamwork"
+                name="teamwork_example"
+                class="short-answer"
+            ></textarea>
+        </div>
+
+        <!-- Question 9: Learning New Tech -->
+        <div class="question-section">
+            <label for="learning" class="question-label">
+                How do you stay updated with new technologies?
+            </label>
+            <textarea
+                id="learning"
+                name="continuous_learning"
+                class="short-answer"
+            ></textarea>
+        </div>
+
+        <!-- Question 10: Additional Comments -->
+        <div class="question-section">
+            <label for="additional" class="question-label">
+                Is there anything else you'd like us to know?
+            </label>
+            <span class="question-hint">Optional - share anything not covered above</span>
+            <textarea
+                id="additional"
+                name="additional_info"
+                class="short-answer"
+            ></textarea>
+        </div>
+
+        <div class="tip">
+            <strong>💡 Pro Tip:</strong>
+            <p>After Fillr Up generates an answer, you can edit it before submitting. The AI provides a great starting point that you can personalize further!</p>
+        </div>
+
+        <div class="submit-section">
+            <button type="submit" class="submit-btn">Submit Application</button>
+        </div>
+    </div>
+
+    <script>
+        // Add character counter for textareas
+        document.querySelectorAll('textarea').forEach(textarea => {
+            textarea.addEventListener('input', function() {
+                const words = this.value.trim().split(/\s+/).filter(word => word.length > 0).length;
+                const wordCountDiv = this.nextElementSibling;
+                if (wordCountDiv && wordCountDiv.classList.contains('word-count')) {
+                    const recommended = wordCountDiv.textContent;
+                    wordCountDiv.textContent = `${words} words | ${recommended}`;
+                }
+            });
+        });
+
+        // Prevent actual form submission
+        document.querySelector('.submit-btn').addEventListener('click', function(e) {
+            e.preventDefault();
+            alert('✅ This is a test form! In a real application, this would submit your answers.\n\nFillr Up test complete!');
+        });
+
+        console.log('🎯 Fillr Up Test Form Ready!');
+        console.log('Right-click any question field and select "Fillr Up ✨"');
+    </script>
+</body>
+</html>
