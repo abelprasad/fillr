@@ -41,7 +41,7 @@ Fillr now includes AI-powered cover letter generation using Google Gemini, compl
 3. Paste your API key and click "Save"
 4. Click "Test Connection" to verify
 
-**Free Tier:** 1,500 requests per day with Gemini 1.5 Flash
+**Free Tier:** Gemini 2.0 Flash (experimental) - check current limits at ai.google.dev
 
 **Privacy:** Your API key is stored locally in your browser only. Job descriptions are sent to Google Gemini API for processing but are not stored.
 
