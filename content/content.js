@@ -34,17 +34,22 @@ async function getTheme() {
 
 // Listen for messages from popup
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  // Handle async operations properly
   if (request.action === 'fillForm') {
-    const result = fillFormFields(request.profile);
-    sendResponse(result);
+    fillFormFields(request.profile).then(result => {
+      sendResponse(result);
+    });
+    return true; // Keep message channel open for async response
   } else if (request.action === 'previewForm') {
-    const result = previewFormFields(request.profile);
-    sendResponse(result);
+    previewFormFields(request.profile).then(result => {
+      sendResponse(result);
+    });
+    return true; // Keep message channel open for async response
   } else if (request.action === 'scrapeJobDescription') {
     const result = scrapeJobDescription();
     sendResponse(result);
+    return true; // Keep message channel open for async response
   }
-  return true; // Keep message channel open for async response
 });
 
 /**
