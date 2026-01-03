@@ -1,0 +1,30 @@
+# Chrome extension artifacts
+*.pem
+*.crx
+*.zip
+
+# Icon files (generated from icon-generator.html)
+icons/*.png
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+
+# Node modules (if added later)
+node_modules/
+package-lock.json
+
+# Development files
+.claude/
+claude.md
+CLAUDE.md

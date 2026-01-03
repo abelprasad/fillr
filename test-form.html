@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test Job Application Form - Fillr Extension Testing</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+      max-width: 800px;
+      margin: 40px auto;
+      padding: 20px;
+      background-color: #f5f5f5;
+    }
+    .container {
+      background: white;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #333;
+      margin-bottom: 10px;
+    }
+    .company-info {
+      color: #666;
+      margin-bottom: 30px;
+      padding-bottom: 20px;
+      border-bottom: 2px solid #e0e0e0;
+    }
+    .form-section {
+      margin-bottom: 30px;
+    }
+    .form-section h2 {
+      font-size: 18px;
+      color: #2563eb;
+      margin-bottom: 15px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid #e0e0e0;
+    }
+    .form-group {
+      margin-bottom: 15px;
+    }
+    label {
+      display: block;
+      font-weight: 500;
+      margin-bottom: 5px;
+      color: #333;
+    }
+    input, select, textarea {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 14px;
+      box-sizing: border-box;
+    }
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: #2563eb;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+    }
+    .submit-btn {
+      background-color: #2563eb;
+      color: white;
+      padding: 12px 30px;
+      border: none;
+      border-radius: 4px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 20px;
+    }
+    .submit-btn:hover {
+      background-color: #1d4ed8;
+    }
+    .test-notice {
+      background-color: #fef3c7;
+      border: 1px solid #f59e0b;
+      padding: 15px;
+      border-radius: 4px;
+      margin-bottom: 20px;
+    }
+    .test-notice strong {
+      color: #92400e;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="test-notice">
+      <strong>Test Form for Fillr Extension</strong><br>
+      Use this form to test the Fillr extension. Click the Fillr icon and then "Fill Form" to autofill this page.
+    </div>
+
+    <h1>Software Engineer Internship Application</h1>
+    <div class="company-info">
+      <strong>Company:</strong> Tech Corp Inc.<br>
+      <strong>Location:</strong> San Francisco, CA<br>
+      <strong>Position:</strong> Summer 2024 Internship
+    </div>
+
+    <form id="applicationForm">
+      <div class="form-section">
+        <h2>Personal Information</h2>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="firstName">First Name *</label>
+            <input type="text" id="firstName" name="firstName" required>
+          </div>
+          <div class="form-group">
+            <label for="lastName">Last Name *</label>
+            <input type="text" id="lastName" name="lastName" required>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="email">Email Address *</label>
+          <input type="email" id="email" name="email" required>
+        </div>
+
+        <div class="form-group">
+          <label for="phone">Phone Number *</label>
+          <input type="tel" id="phone" name="phone" placeholder="(555) 123-4567" required>
+        </div>
+
+        <div class="form-group">
+          <label for="street">Street Address</label>
+          <input type="text" id="street" name="street">
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="city">City</label>
+            <input type="text" id="city" name="city">
+          </div>
+          <div class="form-group">
+            <label for="state">State</label>
+            <input type="text" id="state" name="state" placeholder="CA">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="zip">ZIP Code</label>
+          <input type="text" id="zip" name="zip">
+        </div>
+      </div>
+
+      <div class="form-section">
+        <h2>Professional Links</h2>
+
+        <div class="form-group">
+          <label for="linkedin">LinkedIn Profile</label>
+          <input type="url" id="linkedin" name="linkedin" placeholder="https://linkedin.com/in/yourprofile">
+        </div>
+
+        <div class="form-group">
+          <label for="github">GitHub Profile</label>
+          <input type="url" id="github" name="github" placeholder="https://github.com/yourusername">
+        </div>
+
+        <div class="form-group">
+          <label for="portfolio">Portfolio Website</label>
+          <input type="url" id="portfolio" name="portfolio" placeholder="https://yourportfolio.com">
+        </div>
+      </div>
+
+      <div class="form-section">
+        <h2>Education</h2>
+
+        <div class="form-group">
+          <label for="university">University/College Name *</label>
+          <input type="text" id="university" name="university" required>
+        </div>
+
+        <div class="form-group">
+          <label for="major">Major/Field of Study *</label>
+          <input type="text" id="major" name="major" required>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="graduationDate">Expected Graduation Date</label>
+            <input type="date" id="graduationDate" name="graduationDate">
+          </div>
+          <div class="form-group">
+            <label for="gpa">GPA</label>
+            <input type="text" id="gpa" name="gpa" placeholder="3.8">
+          </div>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <h2>Work Authorization</h2>
+
+        <div class="form-group">
+          <label for="workAuthorization">Work Authorization Status *</label>
+          <select id="workAuthorization" name="workAuthorization" required>
+            <option value="">Please select</option>
+            <option value="citizen">US Citizen</option>
+            <option value="permanent-resident">Permanent Resident</option>
+            <option value="work-visa">Work Visa (H1B, etc.)</option>
+            <option value="student-visa">Student Visa (F-1, J-1)</option>
+            <option value="ead">Employment Authorization Document (EAD)</option>
+            <option value="require-sponsorship">Require Sponsorship</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="sponsorship">Do you require sponsorship? *</label>
+          <select id="sponsorship" name="sponsorship" required>
+            <option value="">Please select</option>
+            <option value="no">No</option>
+            <option value="yes">Yes</option>
+            <option value="future">Not now, but in the future</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <h2>Additional Information</h2>
+
+        <div class="form-group">
+          <label for="coverLetter">Cover Letter (Optional)</label>
+          <textarea id="coverLetter" name="coverLetter" rows="6"
+                    placeholder="Tell us why you're interested in this position..."></textarea>
+        </div>
+      </div>
+
+      <button type="submit" class="submit-btn">Submit Application</button>
+    </form>
+  </div>
+
+  <script>
+    document.getElementById('applicationForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      alert('This is a test form. In a real application, this would submit your data.\n\nFilled fields:\n' +
+            Array.from(new FormData(e.target)).filter(([k,v]) => v).map(([k,v]) => k + ': ' + v).join('\n'));
+    });
+  </script>
+</body>
+</html>
