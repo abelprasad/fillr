@@ -778,36 +778,37 @@ function extractQuestionText(element) {
  * Call Groq API to generate answer for a custom question
  */
 async function generateQuestionAnswer(apiKey, profile, questionText, companyName, jobTitle) {
-  const prompt = `You are helping a job applicant answer an application question.
+  const prompt = `Answer this job application question as if you're the applicant typing it yourself.
 
-APPLICANT PROFILE:
+YOUR INFO:
 - Name: ${profile.firstName || ''} ${profile.lastName || ''}
-- Email: ${profile.email || ''}
 - University: ${profile.university || 'Not specified'}
 - Major: ${profile.major || 'Not specified'}
 - GPA: ${profile.gpa || 'Not specified'}
 - Current/Recent Company: ${profile.currentCompany || 'Not specified'}
 - Current/Recent Title: ${profile.currentTitle || 'Not specified'}
 - Years of Experience: ${profile.yearsOfExperience || 'Not specified'}
-- LinkedIn: ${profile.linkedin || 'Not specified'}
-- GitHub: ${profile.github || 'Not specified'}
 - Work Authorization: ${profile.workAuthorization || 'Not specified'}
 
-JOB DETAILS:
+APPLYING TO:
 - Company: ${companyName}
 - Position: ${jobTitle}
 
-QUESTION TO ANSWER:
+QUESTION:
 "${questionText}"
 
-Write a professional, compelling answer to this question. The answer should:
-1. Be concise (2-4 sentences, 50-150 words)
-2. Highlight relevant skills and experiences from the applicant's profile
-3. Show genuine enthusiasm for the role and company
-4. Be specific and personalized (not generic)
-5. Use first person ("I", "my")
+INSTRUCTIONS:
+- Write like a real person typing their answer, not like an AI or corporate robot
+- Be authentic and conversational - avoid buzzwords, clichés, and corporate jargon
+- Keep it brief and natural (1-3 sentences typically, max 100 words)
+- Sound genuine, not overly enthusiastic or salesy
+- Use simple, direct language - write how you'd actually talk
+- Only mention what's actually relevant from your profile
+- Don't force excitement or use exclamation marks unless it feels natural
+- Avoid phrases like "I am excited to", "I am passionate about", "I would love to"
+- Just be straightforward and honest
 
-Write ONLY the answer, no preamble or explanation:`;
+Write ONLY the answer as the applicant would type it:`;
 
   const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
     method: 'POST',
@@ -820,15 +821,15 @@ Write ONLY the answer, no preamble or explanation:`;
       messages: [
         {
           role: 'system',
-          content: 'You are a professional career coach helping with job applications. Write concise, personalized answers.'
+          content: 'You are the job applicant. Write naturally like a real person typing an answer, not like an AI assistant or professional writer. Be authentic, casual-professional, and concise. Avoid corporate speak and forced enthusiasm.'
         },
         {
           role: 'user',
           content: prompt
         }
       ],
-      temperature: 0.7,
-      max_tokens: 300
+      temperature: 0.8,
+      max_tokens: 200
     })
   });
 
