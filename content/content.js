@@ -671,19 +671,24 @@ async function fillrUpAnswer() {
     targetElement.placeholder = '✨ Generating answer with AI...';
     targetElement.disabled = true;
 
-    // Get job context from page
+    // Get job context from page (now extracts much more data)
     const jobContext = scrapeJobDescription();
-    const companyName = jobContext.success ? jobContext.data.companyName : 'the company';
-    const jobTitle = jobContext.success ? jobContext.data.jobTitle : 'this position';
+    console.log('📄 Job context scraped:', jobContext.success ? 'success' : 'partial', {
+      company: jobContext.data?.companyName,
+      title: jobContext.data?.jobTitle,
+      location: jobContext.data?.location,
+      jobType: jobContext.data?.jobType,
+      hasDescription: !!jobContext.data?.jobDescription,
+      hasSkills: !!jobContext.data?.skills
+    });
 
-    // Generate AI answer
+    // Generate AI answer with full job context
     try {
       const answer = await generateQuestionAnswer(
         apiKey,
         profile,
         questionText,
-        companyName,
-        jobTitle
+        jobContext
       );
 
       // Fill the field with the answer
@@ -777,38 +782,66 @@ function extractQuestionText(element) {
 /**
  * Call Groq API to generate answer for a custom question
  */
-async function generateQuestionAnswer(apiKey, profile, questionText, companyName, jobTitle) {
-  const prompt = `Answer this job application question as if you're the applicant typing it yourself.
+async function generateQuestionAnswer(apiKey, profile, questionText, jobContext) {
+  // Build job context section dynamically based on available data
+  const jobData = jobContext.success ? jobContext.data : jobContext.data || {};
 
-YOUR INFO:
+  let jobContextSection = `APPLYING TO:
+- Company: ${jobData.companyName || 'the company'}
+- Position: ${jobData.jobTitle || 'this position'}`;
+
+  if (jobData.location) {
+    jobContextSection += `\n- Location: ${jobData.location}`;
+  }
+  if (jobData.jobType) {
+    jobContextSection += `\n- Job Type: ${jobData.jobType}`;
+  }
+  if (jobData.department) {
+    jobContextSection += `\n- Department: ${jobData.department}`;
+  }
+  if (jobData.experienceLevel) {
+    jobContextSection += `\n- Experience Level: ${jobData.experienceLevel}`;
+  }
+
+  // Add skills/requirements if available
+  let skillsSection = '';
+  if (jobData.skills) {
+    skillsSection = `\nKEY REQUIREMENTS FROM JOB POSTING:
+${jobData.skills.substring(0, 800)}`;
+  }
+
+  // Add job description summary if available (limit to keep prompt reasonable)
+  let descriptionSection = '';
+  if (jobData.jobDescription && jobData.jobDescription.length > 50) {
+    // Take first 1500 chars for context
+    const descPreview = jobData.jobDescription.substring(0, 1500);
+    descriptionSection = `\nABOUT THE ROLE (from job posting):
+${descPreview}${jobData.jobDescription.length > 1500 ? '...' : ''}`;
+  }
+
+  const prompt = `Answer this job application question professionally but naturally - like a competent candidate who communicates clearly.
+
+APPLICANT INFO:
 - Name: ${profile.firstName || ''} ${profile.lastName || ''}
-- University: ${profile.university || 'Not specified'}
-- Major: ${profile.major || 'Not specified'}
-- GPA: ${profile.gpa || 'Not specified'}
-- Current/Recent Company: ${profile.currentCompany || 'Not specified'}
-- Current/Recent Title: ${profile.currentTitle || 'Not specified'}
-- Years of Experience: ${profile.yearsOfExperience || 'Not specified'}
+- Education: ${profile.university || 'Not specified'} - ${profile.major || 'Not specified'}${profile.gpa ? ' (' + profile.gpa + ' GPA)' : ''}
+- Current Role: ${profile.currentTitle || 'Not specified'} at ${profile.currentCompany || 'Not specified'}
+- Experience: ${profile.yearsOfExperience || 'Not specified'} years
 - Work Authorization: ${profile.workAuthorization || 'Not specified'}
 
-APPLYING TO:
-- Company: ${companyName}
-- Position: ${jobTitle}
+${jobContextSection}${skillsSection}${descriptionSection}
 
-QUESTION:
-"${questionText}"
+QUESTION: "${questionText}"
 
-INSTRUCTIONS:
-- Write like a real person typing their answer, not like an AI or corporate robot
-- Be authentic and conversational - avoid buzzwords, clichés, and corporate jargon
-- Keep it brief and natural (1-3 sentences typically, max 100 words)
-- Sound genuine, not overly enthusiastic or salesy
-- Use simple, direct language - write how you'd actually talk
-- Only mention what's actually relevant from your profile
-- Don't force excitement or use exclamation marks unless it feels natural
-- Avoid phrases like "I am excited to", "I am passionate about", "I would love to"
-- Just be straightforward and honest
+WRITING STYLE:
+- Professional but not stiff - write like a confident professional, not a robot
+- Concise and direct - 1-3 sentences, get to the point
+- Specific over generic - use real details from your background and the job posting
+- Natural language - avoid clichés like "passionate about", "excited to", "leverage my skills"
+- Don't oversell or use excessive enthusiasm
+- Vary sentence structure - don't always start with "I"
+- Match formality to the question - factual questions get factual answers
 
-Write ONLY the answer as the applicant would type it:`;
+Write ONLY the answer:`;
 
   const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
     method: 'POST',
@@ -821,15 +854,15 @@ Write ONLY the answer as the applicant would type it:`;
       messages: [
         {
           role: 'system',
-          content: 'You are the job applicant. Write naturally like a real person typing an answer, not like an AI assistant or professional writer. Be authentic, casual-professional, and concise. Avoid corporate speak and forced enthusiasm.'
+          content: 'You are a job applicant writing responses for an application. Be professional and competent, but natural - like a real person who communicates well. Avoid corporate jargon, buzzwords, and forced enthusiasm. Be specific and concise. Your tone should be confident and straightforward, not salesy or robotic.'
         },
         {
           role: 'user',
           content: prompt
         }
       ],
-      temperature: 0.8,
-      max_tokens: 200
+      temperature: 0.7,
+      max_tokens: 180
     })
   });
 
@@ -845,15 +878,20 @@ Write ONLY the answer as the applicant would type it:`;
 }
 
 /**
- * Scrape job description from the current page
+ * Scrape job description and metadata from the current page
  */
 function scrapeJobDescription() {
   try {
     let jobDescription = '';
     let companyName = '';
     let jobTitle = '';
-    
-    // Strategy 1: Try common job board selectors
+    let location = '';
+    let jobType = '';
+    let skills = '';
+    let department = '';
+    let experienceLevel = '';
+
+    // Strategy 1: Try common job board selectors for description
     const commonSelectors = [
       // Greenhouse
       '#content .app-wrapper, #app-body',
@@ -891,6 +929,8 @@ function scrapeJobDescription() {
       '[class*="employer"]',
       '[data-automation-id="company"]',
       '.topcard__org-name',
+      '.posting-categories .sort-by-time',
+      '.company-name',
       'meta[property="og:site_name"]',
       'meta[name="author"]'
     ];
@@ -923,6 +963,140 @@ function scrapeJobDescription() {
       }
     }
 
+    // Extract location
+    const locationSelectors = [
+      '[class*="location"]',
+      '[data-automation-id="locationName"]',
+      '.topcard__flavor--bullet',
+      '.posting-categories .location',
+      '[class*="job-location"]',
+      'meta[name="geo.placename"]'
+    ];
+
+    for (const selector of locationSelectors) {
+      const element = document.querySelector(selector);
+      if (element) {
+        location = element.textContent || element.getAttribute('content') || '';
+        location = location.trim();
+        if (location && location.length < 100) break;
+      }
+    }
+
+    // Extract job type and work arrangement from page text
+    const pageText = document.body.textContent;
+    const jobTypePatterns = [
+      { pattern: /\b(full[- ]?time)\b/i, type: 'Full-time' },
+      { pattern: /\b(part[- ]?time)\b/i, type: 'Part-time' },
+      { pattern: /\b(contract)\b/i, type: 'Contract' },
+      { pattern: /\b(internship|intern)\b/i, type: 'Internship' },
+      { pattern: /\b(temporary|temp)\b/i, type: 'Temporary' }
+    ];
+
+    const workArrangementPatterns = [
+      { pattern: /\b(remote)\b/i, type: 'Remote' },
+      { pattern: /\b(hybrid)\b/i, type: 'Hybrid' },
+      { pattern: /\b(on[- ]?site|in[- ]?office|in[- ]?person)\b/i, type: 'On-site' }
+    ];
+
+    const jobTypes = [];
+    for (const { pattern, type } of jobTypePatterns) {
+      if (pattern.test(pageText)) {
+        jobTypes.push(type);
+        break; // Only take first match
+      }
+    }
+    for (const { pattern, type } of workArrangementPatterns) {
+      if (pattern.test(pageText)) {
+        jobTypes.push(type);
+        break;
+      }
+    }
+    jobType = jobTypes.join(', ');
+
+    // Extract experience level
+    const expPatterns = [
+      { pattern: /\b(entry[- ]?level|junior|associate)\b/i, level: 'Entry-level' },
+      { pattern: /\b(mid[- ]?level|intermediate)\b/i, level: 'Mid-level' },
+      { pattern: /\b(senior|sr\.?|lead)\b/i, level: 'Senior' },
+      { pattern: /\b(staff|principal)\b/i, level: 'Staff/Principal' },
+      { pattern: /\b(manager|director)\b/i, level: 'Manager/Director' },
+      { pattern: /\b(\d+\+?\s*years?\s*(of\s*)?(experience|exp))\b/i, level: null }
+    ];
+
+    for (const { pattern, level } of expPatterns) {
+      const match = pageText.match(pattern);
+      if (match) {
+        if (level) {
+          experienceLevel = level;
+        } else {
+          experienceLevel = match[1]; // Use the actual match (e.g., "5+ years experience")
+        }
+        break;
+      }
+    }
+
+    // Extract department/team
+    const deptSelectors = [
+      '[class*="department"]',
+      '[class*="team"]',
+      '.posting-categories .department'
+    ];
+
+    for (const selector of deptSelectors) {
+      const element = document.querySelector(selector);
+      if (element) {
+        department = element.textContent.trim();
+        if (department && department.length < 50) break;
+      }
+    }
+
+    // Extract skills/requirements from dedicated sections
+    const skillsSelectors = [
+      '[class*="requirements"]',
+      '[class*="qualifications"]',
+      '[class*="skills"]',
+      'section:has(h2:contains("Requirements"))',
+      'section:has(h3:contains("Qualifications"))'
+    ];
+
+    for (const selector of skillsSelectors) {
+      try {
+        const element = document.querySelector(selector);
+        if (element) {
+          // Get bullet points if available
+          const bullets = element.querySelectorAll('li');
+          if (bullets.length > 0) {
+            skills = Array.from(bullets)
+              .slice(0, 10) // Limit to 10 items
+              .map(li => li.textContent.trim())
+              .filter(text => text.length < 200)
+              .join('; ');
+          } else {
+            skills = element.textContent.trim().substring(0, 500);
+          }
+          if (skills) break;
+        }
+      } catch (e) {
+        // :has() selector may not be supported everywhere
+        continue;
+      }
+    }
+
+    // Fallback: Extract skills from description using common patterns
+    if (!skills && jobDescription) {
+      const skillPatterns = [
+        /(?:requirements?|qualifications?|skills?)[:\s]*([^.]+(?:\.[^.]+){0,5})/i,
+        /(?:looking for|seeking|must have)[:\s]*([^.]+(?:\.[^.]+){0,3})/i
+      ];
+      for (const pattern of skillPatterns) {
+        const match = jobDescription.match(pattern);
+        if (match && match[1]) {
+          skills = match[1].trim().substring(0, 500);
+          break;
+        }
+      }
+    }
+
     // Clean up description (remove extra whitespace)
     jobDescription = jobDescription
       .replace(/\s+/g, ' ')
@@ -952,6 +1126,11 @@ function scrapeJobDescription() {
         jobDescription,
         companyName: companyName || 'the company',
         jobTitle: jobTitle || 'this position',
+        location: location || '',
+        jobType: jobType || '',
+        skills: skills || '',
+        department: department || '',
+        experienceLevel: experienceLevel || '',
         pageUrl: window.location.href,
         pageTitle: document.title
       }
@@ -961,6 +1140,18 @@ function scrapeJobDescription() {
     console.error('Error scraping job description:', error);
     return {
       success: false,
+      data: {
+        jobDescription: '',
+        companyName: 'the company',
+        jobTitle: 'this position',
+        location: '',
+        jobType: '',
+        skills: '',
+        department: '',
+        experienceLevel: '',
+        pageUrl: window.location.href,
+        pageTitle: document.title
+      },
       message: 'Error scraping job description: ' + error.message
     };
   }
