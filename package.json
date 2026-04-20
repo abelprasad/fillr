@@ -1,0 +1,17 @@
+{
+  "name": "fillr",
+  "version": "1.4.0",
+  "description": "AI-powered autofill for job applications",
+  "scripts": {
+    "test": "npm run test:unit && npm run test:e2e",
+    "test:unit": "vitest run",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.45.0",
+    "jsdom": "^29.0.2",
+    "vitest": "^1.6.0"
+  }
+}

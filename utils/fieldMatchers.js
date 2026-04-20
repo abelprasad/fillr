@@ -23,12 +23,7 @@ const FIELD_PATTERNS = {
     'contact', 'contact-number', 'contactnumber'
   ],
 
-  street: [
-    'street', 'address', 'address1', 'address-1', 'address_1', 'streetaddress',
-    'street-address', 'street_address', 'addressline1', 'address-line-1',
-    'street address', 'address line 1', 'line1'
-  ],
-
+  // city/state/zip before street so "addressSection_city" (Workday) matches city, not street
   city: [
     'city', 'town', 'locality', 'municipality'
   ],
@@ -40,6 +35,12 @@ const FIELD_PATTERNS = {
   zip: [
     'zip', 'zipcode', 'zip-code', 'zip_code', 'postalcode', 'postal-code',
     'postal_code', 'postcode', 'postal', 'zip code', 'postal code'
+  ],
+
+  street: [
+    'street', 'address', 'address1', 'address-1', 'address_1', 'streetaddress',
+    'street-address', 'street_address', 'addressline1', 'address-line-1',
+    'street address', 'address line 1', 'line1'
   ],
 
   linkedin: [
@@ -222,8 +223,18 @@ function normalizeString(str) {
 function matchesPattern(value, patterns) {
   if (!value) return false;
   const normalized = normalizeString(value);
+  // Very short values (≤3 chars) require exact match to avoid false positives
+  // e.g. "CA" placeholder normalized to "ca" must not match "lo[ca]lity"
+  if (normalized.length <= 3) {
+    return patterns.some(p => normalizeString(p) === normalized);
+  }
   return patterns.some(pattern => {
     const normalizedPattern = normalizeString(pattern);
+    // Very short patterns (≤3 chars) also require exact match
+    // e.g. "tel" must not match "telluswhyyou..." placeholder text
+    if (normalizedPattern.length <= 3) {
+      return normalized === normalizedPattern;
+    }
     return normalized.includes(normalizedPattern) || normalizedPattern.includes(normalized);
   });
 }
@@ -236,6 +247,16 @@ function getFieldLabel(element) {
   if (element.id) {
     const label = document.querySelector(`label[for="${element.id}"]`);
     if (label) return label.textContent;
+  }
+
+  // Try aria-labelledby (used heavily by Workday, Greenhouse, and modern SPAs)
+  const labelledBy = element.getAttribute('aria-labelledby');
+  if (labelledBy) {
+    const text = labelledBy.split(' ')
+      .map(id => document.getElementById(id)?.textContent || '')
+      .join(' ')
+      .trim();
+    if (text) return text;
   }
 
   // Try to find parent label
@@ -261,10 +282,11 @@ function detectFieldType(element) {
     return null;
   }
 
-  // Collect attributes to check
+  // Collect attributes to check (data-automation-id covers Workday fields)
   const attributes = [
     element.name,
     element.id,
+    element.getAttribute('data-automation-id'),
     element.placeholder,
     element.getAttribute('aria-label'),
     element.getAttribute('autocomplete'),

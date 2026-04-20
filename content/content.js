@@ -1,6 +1,12 @@
 // Content script for detecting and filling form fields
 // This runs on all web pages to enable autofill functionality
 
+// Guard against duplicate injection via executeScript — abort if already running
+if (window.__fillrLoaded) { throw Object.assign(new Error('Fillr already loaded'), { fillrDuplicate: true }); }
+window.__fillrLoaded = true;
+// Set a DOM attribute so tests (which run in the main world) can detect injection
+document.documentElement.setAttribute('data-fillr-loaded', '1');
+
 // Constants
 const JOB_DESC_MAX_LENGTH = 8000;
 const PREVIEW_AUTO_CLEAR_MS = 30000; // 30 seconds
@@ -144,8 +150,8 @@ async function fillFormFields(profile) {
             filledCount++;
           }
         });
-      } else if (!element.value) {
-        // Regular input or textarea - only fill if empty
+      } else {
+        // Regular input or textarea — always overwrite with profile value
         element.value = value;
         triggerChangeEvent(element);
         highlightFieldSync(element, isDark);
@@ -210,20 +216,25 @@ function findMatchingOption(selectElement, targetValue) {
 
 /**
  * Trigger change events on an element
- * This ensures the page's JavaScript handlers recognize the change
+ * Uses native setter trick to work with React/Angular controlled inputs
  */
 function triggerChangeEvent(element) {
-  // Trigger input event
-  const inputEvent = new Event('input', { bubbles: true, cancelable: true });
-  element.dispatchEvent(inputEvent);
+  // Use native setter so React/Angular see the value change through their internal tracking
+  try {
+    const proto = element.tagName === 'TEXTAREA'
+      ? window.HTMLTextAreaElement.prototype
+      : window.HTMLInputElement.prototype;
+    const nativeSetter = Object.getOwnPropertyDescriptor(proto, 'value');
+    if (nativeSetter && nativeSetter.set) {
+      nativeSetter.set.call(element, element.value);
+    }
+  } catch (e) {
+    // Ignore — native setter unavailable, fall through to events
+  }
 
-  // Trigger change event
-  const changeEvent = new Event('change', { bubbles: true, cancelable: true });
-  element.dispatchEvent(changeEvent);
-
-  // Trigger blur event (some forms validate on blur)
-  const blurEvent = new Event('blur', { bubbles: true, cancelable: true });
-  element.dispatchEvent(blurEvent);
+  element.dispatchEvent(new InputEvent('input', { bubbles: true, cancelable: true }));
+  element.dispatchEvent(new Event('change', { bubbles: true, cancelable: true }));
+  element.dispatchEvent(new FocusEvent('blur', { bubbles: true, cancelable: true }));
 }
 
 /**
@@ -621,7 +632,6 @@ async function showNotification(message, type = 'success') {
   }, 3000);
 }
 
-// Log that content script is loaded
 console.log('✓ Fillr extension loaded | Alt+F to fill | Alt+P to preview | Right-click → Fillr Up');
 
 /**

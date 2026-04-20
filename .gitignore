@@ -20,8 +20,22 @@ Thumbs.db
 # Logs
 *.log
 
-# Node modules (if added later)
+# Node modules / test tooling
 node_modules/
 package-lock.json
+playwright-report/
+test-results/
 
 # Development files
+
+# Local secrets
+.env
+
+# Local documentation (not for repo)
+todo.md
+handoff.md
+context.md
+learnings.md
+
+# Local editor/tooling config
+.claude/
