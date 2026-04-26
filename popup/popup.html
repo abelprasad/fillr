@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Fillr - Profile Manager</title>
   <link rel="stylesheet" href="popup.css">
+  <script src="../lib/pdf.min.js"></script>
 </head>
 <body>
   <div class="container">
@@ -51,6 +52,23 @@
       </div>
 
       <div class="keyboard-hint">Tip: Press Alt+F to fill • Alt+P to preview</div>
+
+      <!-- Resume Upload Section -->
+      <div class="resume-section" id="resumeSection">
+        <input type="file" id="resumeFileInput" accept=".pdf" style="display:none">
+        <div class="resume-drop-zone" id="resumeDropZone">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" style="flex-shrink:0"><path d="M3 2h7l3 3v9H3V2z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/><path d="M10 2v3h3" stroke="currentColor" stroke-width="1.2"/></svg>
+          <span>Upload resume (PDF)</span>
+        </div>
+        <div class="resume-pill hidden" id="resumeStatus">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" style="flex-shrink:0"><path d="M3 2h7l3 3v9H3V2z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/><path d="M10 2v3h3" stroke="currentColor" stroke-width="1.2"/></svg>
+          <span class="resume-filename" id="resumeFilename"></span>
+          <button class="resume-change-btn" id="resumeClearBtn">change</button>
+        </div>
+        <div class="resume-processing hidden" id="resumeProcessing">
+          <span>Extracting text...</span>
+        </div>
+      </div>
 
     <form id="profileForm" class="hidden">
       <section class="form-section">

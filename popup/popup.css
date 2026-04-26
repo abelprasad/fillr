@@ -718,3 +718,58 @@ header {
   line-height: 1.4;
   margin: 0;
 }
+.resume-section { margin: 8px 0 4px; }
+
+.resume-drop-zone {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 1px dashed var(--border, #4a5568);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--text-secondary, #9ca3af);
+  transition: border-color 0.15s, color 0.15s;
+}
+.resume-drop-zone:hover { border-color: var(--primary, #2563eb); color: var(--text, #f1f5f9); }
+.resume-drop-zone.drag-over { border-color: var(--primary, #2563eb); }
+
+.resume-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--surface, #1e2a3a);
+  border: 1px solid var(--border, #2d3748);
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--text, #f1f5f9);
+}
+
+.resume-filename {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+}
+
+.resume-change-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 11px;
+  color: var(--text-secondary, #9ca3af);
+  padding: 0;
+  flex-shrink: 0;
+}
+.resume-change-btn:hover { color: var(--text, #f1f5f9); }
+
+.resume-processing {
+  padding: 8px 12px;
+  font-size: 12px;
+  color: var(--text-secondary, #9ca3af);
+}
+
+.hidden { display: none !important; }

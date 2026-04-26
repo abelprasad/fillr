@@ -34,5 +34,11 @@
       "js": ["utils/fieldMatchers.js", "content/content.js"],
       "run_at": "document_idle"
     }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["lib/pdf.worker.min.js"],
+      "matches": ["<all_urls>"]
+    }
   ]
 }

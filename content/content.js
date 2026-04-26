@@ -18,9 +18,19 @@ const THEME_CACHE_DURATION_MS = 60000; // Cache for 1 minute
 
 // Track last focused/right-clicked element for context menu
 let lastFocusedElement = null;
+
 document.addEventListener('contextmenu', (e) => {
-  if (e.target.matches('input, textarea')) {
-    lastFocusedElement = e.target;
+  const editable = e.target.closest('input, textarea, [contenteditable="true"], [contenteditable=""], [role="textbox"]');
+  if (editable) {
+    lastFocusedElement = editable;
+    console.log('✓ Fillr: Captured right-click on editable element:', editable.tagName, editable.className);
+  }
+}, true);
+
+document.addEventListener('focusin', (e) => {
+  const editable = e.target.closest('input, textarea, [contenteditable="true"], [contenteditable=""], [role="textbox"]');
+  if (editable) {
+    lastFocusedElement = editable;
   }
 }, true);
 
@@ -299,7 +309,7 @@ async function previewFormFields(profile) {
     for (const { element, fieldType } of detectedFields) {
       const value = profile[fieldType];
       if (value) {
-        await highlightPreviewFieldSync(element, fieldType, value, isDark);
+        highlightPreviewFieldSync(element, fieldType, value, isDark);
         detectedCount++;
       }
     }
@@ -516,12 +526,12 @@ document.addEventListener('keydown', async (event) => {
         );
       } else if (fillResult.fieldsFilledCount === 0) {
         showNotification('No matching fields found on this page', 'warning');
-      } else {
-        showNotification('Failed to fill form', 'error');
+      } else if (!fillResult.success) {
+        showNotification(fillResult.message || 'Failed to fill form', 'error');
       }
     } catch (error) {
       console.error('Error with keyboard shortcut:', error);
-      showNotification('Error filling form', 'error');
+      showNotification('Error filling form: ' + error.message, 'error');
     }
   }
 
@@ -644,14 +654,25 @@ async function fillrUpAnswer() {
 
   try {
     // Check if we have a target element
-    if (!lastFocusedElement) {
-      console.warn('⚠️ No lastFocusedElement found');
-      showNotification('Please right-click on a text field to use Fillr Up', 'warning');
-      return { success: false, message: 'No target element' };
+    let targetElement = lastFocusedElement;
+
+    // Fallback: Try to get currently focused element if lastFocusedElement is null
+    if (!targetElement) {
+      console.log('⚠️ No lastFocusedElement, trying document.activeElement');
+      targetElement = document.activeElement;
+
+      // Validate that activeElement is actually an editable field
+      if (!targetElement ||
+          !targetElement.matches('input, textarea, [contenteditable="true"], [contenteditable=""], [role="textbox"]')) {
+        console.warn('⚠️ No valid editable element found');
+        showNotification('Please right-click on a text field to use Fillr Up', 'warning');
+        return { success: false, message: 'No target element' };
+      }
+
+      console.log('✓ Using activeElement as fallback:', targetElement.tagName);
     }
 
-    const targetElement = lastFocusedElement;
-    console.log('✓ Target element:', targetElement.tagName, targetElement.name || targetElement.id);
+    console.log('✓ Target element:', targetElement.tagName, targetElement.name || targetElement.id || targetElement.className);
 
     // Extract question text from the field's context
     const questionText = extractQuestionText(targetElement);
@@ -676,10 +697,21 @@ async function fillrUpAnswer() {
     }
 
     // Show loading state
-    const originalValue = targetElement.value;
+    const isContentEditable = targetElement.isContentEditable || targetElement.hasAttribute('contenteditable');
+    const originalValue = isContentEditable ? targetElement.textContent : targetElement.value;
     const originalPlaceholder = targetElement.placeholder;
-    targetElement.placeholder = '✨ Generating answer with AI...';
-    targetElement.disabled = true;
+
+    if (!isContentEditable) {
+      targetElement.placeholder = '✨ Generating answer with AI...';
+      targetElement.disabled = true;
+    } else {
+      // For contenteditable, show loading state differently
+      targetElement.style.opacity = '0.6';
+      targetElement.setAttribute('contenteditable', 'false');
+      const loadingText = document.createTextNode('✨ Generating answer with AI...');
+      targetElement.textContent = '';
+      targetElement.appendChild(loadingText);
+    }
 
     // Get job context from page (now extracts much more data)
     const jobContext = scrapeJobDescription();
@@ -702,9 +734,15 @@ async function fillrUpAnswer() {
       );
 
       // Fill the field with the answer
-      targetElement.value = answer;
-      targetElement.disabled = false;
-      targetElement.placeholder = originalPlaceholder;
+      if (isContentEditable) {
+        targetElement.textContent = answer;
+        targetElement.setAttribute('contenteditable', 'true');
+        targetElement.style.opacity = '';
+      } else {
+        targetElement.value = answer;
+        targetElement.disabled = false;
+        targetElement.placeholder = originalPlaceholder;
+      }
 
       // Trigger change events
       triggerChangeEvent(targetElement);
@@ -719,9 +757,18 @@ async function fillrUpAnswer() {
 
     } catch (error) {
       console.error('Error generating answer:', error);
-      targetElement.value = originalValue;
-      targetElement.disabled = false;
-      targetElement.placeholder = originalPlaceholder;
+
+      // Restore original state on error
+      if (isContentEditable) {
+        targetElement.textContent = originalValue;
+        targetElement.setAttribute('contenteditable', 'true');
+        targetElement.style.opacity = '';
+      } else {
+        targetElement.value = originalValue;
+        targetElement.disabled = false;
+        targetElement.placeholder = originalPlaceholder;
+      }
+
       showNotification('Error generating answer: ' + error.message, 'error');
       return { success: false, message: error.message };
     }
@@ -760,9 +807,14 @@ function extractQuestionText(element) {
     questionText = element.getAttribute('aria-label').trim();
   }
 
-  // Priority 4: Placeholder
+  // Priority 4: Placeholder (for input/textarea)
   if (!questionText && element.placeholder) {
     questionText = element.placeholder.trim();
+  }
+
+  // Priority 4.5: data-placeholder (common for contenteditable)
+  if (!questionText && element.getAttribute('data-placeholder')) {
+    questionText = element.getAttribute('data-placeholder').trim();
   }
 
   // Priority 5: Name attribute (clean up underscores/dashes)
@@ -793,6 +845,11 @@ function extractQuestionText(element) {
  * Call Groq API to generate answer for a custom question
  */
 async function generateQuestionAnswer(apiKey, profile, questionText, jobContext) {
+  // Get resume text from local storage
+  const resumeStorage = await chrome.storage.local.get('resumeText');
+  const resumeText = resumeStorage.resumeText || '';
+  console.log('Fillr: resumeText length:', resumeText.length, '| preview:', resumeText.substring(0, 300));
+
   // Build job context section dynamically based on available data
   const jobData = jobContext.success ? jobContext.data : jobContext.data || {};
 
@@ -829,6 +886,13 @@ ${jobData.skills.substring(0, 800)}`;
 ${descPreview}${jobData.jobDescription.length > 1500 ? '...' : ''}`;
   }
 
+  // Add resume content if available
+  let resumeSection = '';
+  if (resumeText) {
+    resumeSection = `\nAPPLICANT RESUME CONTENT:
+${resumeText.substring(0, 3000)}`; // Limit to 3000 chars to save tokens
+  }
+
   const prompt = `Answer this job application question professionally but naturally - like a competent candidate who communicates clearly.
 
 APPLICANT INFO:
@@ -837,6 +901,8 @@ APPLICANT INFO:
 - Current Role: ${profile.currentTitle || 'Not specified'} at ${profile.currentCompany || 'Not specified'}
 - Experience: ${profile.yearsOfExperience || 'Not specified'} years
 - Work Authorization: ${profile.workAuthorization || 'Not specified'}
+
+${resumeSection}
 
 ${jobContextSection}${skillsSection}${descriptionSection}
 
@@ -847,12 +913,14 @@ WRITING STYLE:
 - Concise and direct - 1-3 sentences, get to the point
 - Specific over generic - use real details from your background and the job posting
 - Natural language - avoid clichés like "passionate about", "excited to", "leverage my skills"
+- Do not repeat the same story or project across multiple answers — vary which experience you draw from
 - Don't oversell or use excessive enthusiasm
 - Vary sentence structure - don't always start with "I"
 - Match formality to the question - factual questions get factual answers
 
 Write ONLY the answer:`;
 
+  console.log('Fillr: sending prompt:', prompt.substring(0, 500));
   const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
     method: 'POST',
     headers: {

@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ContentEditable Test - Modern Job Application</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+            padding: 40px 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding-bottom: 30px;
+            border-bottom: 2px solid #e5e7eb;
+        }
+
+        .test-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 16px;
+        }
+
+        h1 {
+            color: #1f2937;
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            color: #6b7280;
+            font-size: 16px;
+        }
+
+        .instructions {
+            background: #eff6ff;
+            border: 2px solid #3b82f6;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+
+        .instructions h2 {
+            color: #1e40af;
+            font-size: 18px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .instructions ol {
+            margin-left: 20px;
+            color: #1f2937;
+            line-height: 1.8;
+        }
+
+        .instructions li {
+            margin-bottom: 8px;
+        }
+
+        .question-group {
+            margin-bottom: 32px;
+            padding: 24px;
+            background: #f9fafb;
+            border-radius: 12px;
+            border: 2px solid #e5e7eb;
+            transition: all 0.3s ease;
+        }
+
+        .question-group:hover {
+            border-color: #8b5cf6;
+            box-shadow: 0 4px 12px rgba(139, 92, 246, 0.1);
+        }
+
+        .field-type-badge {
+            display: inline-block;
+            background: #8b5cf6;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+        }
+
+        label {
+            display: block;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 12px;
+            font-size: 15px;
+        }
+
+        input[type="text"],
+        textarea {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #d1d5db;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+            color: #1f2937;
+            transition: all 0.2s ease;
+        }
+
+        input[type="text"]:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #8b5cf6;
+            box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+        }
+
+        textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        /* ContentEditable specific styles */
+        [contenteditable="true"] {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #d1d5db;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+            color: #1f2937;
+            background: white;
+            min-height: 50px;
+            transition: all 0.2s ease;
+            cursor: text;
+        }
+
+        [contenteditable="true"]:hover {
+            border-color: #9ca3af;
+        }
+
+        [contenteditable="true"]:focus {
+            outline: none;
+            border-color: #8b5cf6;
+            box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+        }
+
+        [contenteditable="true"]:empty:before {
+            content: attr(data-placeholder);
+            color: #9ca3af;
+            cursor: text;
+        }
+
+        .field-description {
+            font-size: 13px;
+            color: #6b7280;
+            margin-top: 8px;
+            font-style: italic;
+        }
+
+        .comparison-section {
+            margin-top: 40px;
+            padding-top: 40px;
+            border-top: 2px solid #e5e7eb;
+        }
+
+        .comparison-section h2 {
+            color: #1f2937;
+            font-size: 22px;
+            margin-bottom: 20px;
+        }
+
+        .side-by-side {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin-bottom: 32px;
+        }
+
+        .side-by-side .question-group {
+            margin-bottom: 0;
+        }
+
+        @media (max-width: 768px) {
+            .side-by-side {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="test-badge">⚡ ContentEditable Test Form</div>
+            <h1>Modern Job Application</h1>
+            <p class="subtitle">Testing Fillr Up with various input types</p>
+        </div>
+
+        <div class="instructions">
+            <h2>📋 How to Test Fillr Up</h2>
+            <ol>
+                <li><strong>Right-click</strong> on any text field below</li>
+                <li>Select <strong>"Fillr Up ✨"</strong> from the context menu</li>
+                <li>Watch as AI generates a personalized answer!</li>
+                <li>Test on <strong>regular inputs, textareas, AND contenteditable divs</strong></li>
+            </ol>
+        </div>
+
+        <!-- ContentEditable Fields -->
+        <div class="question-group">
+            <span class="field-type-badge">ContentEditable Div</span>
+            <label for="ce-motivation">Why do you want to work at our company?</label>
+            <div
+                id="ce-motivation"
+                contenteditable="true"
+                data-placeholder="Type your answer here..."
+                role="textbox"
+                aria-label="Why do you want to work at our company?"
+            ></div>
+            <p class="field-description">✨ This is a contenteditable div (common in modern web apps)</p>
+        </div>
+
+        <div class="question-group">
+            <span class="field-type-badge">ContentEditable Div</span>
+            <label>Tell us about a challenging project you've worked on</label>
+            <div
+                contenteditable="true"
+                data-placeholder="Describe a challenging project..."
+                role="textbox"
+                aria-label="Tell us about a challenging project"
+            ></div>
+            <p class="field-description">✨ ContentEditable with role="textbox" attribute</p>
+        </div>
+
+        <div class="question-group">
+            <span class="field-type-badge">ContentEditable Div</span>
+            <label>What makes you a good fit for this role?</label>
+            <div
+                contenteditable="true"
+                data-placeholder="Explain why you're a good fit..."
+            ></div>
+            <p class="field-description">✨ ContentEditable with data-placeholder</p>
+        </div>
+
+        <!-- Comparison Section -->
+        <div class="comparison-section">
+            <h2>Side-by-Side Comparison</h2>
+            <p style="margin-bottom: 20px; color: #6b7280;">
+                Same question, different input types - both should work with Fillr Up!
+            </p>
+
+            <div class="side-by-side">
+                <div class="question-group">
+                    <span class="field-type-badge">Standard Textarea</span>
+                    <label for="textarea-skills">What are your key technical skills?</label>
+                    <textarea
+                        id="textarea-skills"
+                        placeholder="List your key technical skills..."
+                        aria-label="What are your key technical skills?"
+                    ></textarea>
+                </div>
+
+                <div class="question-group">
+                    <span class="field-type-badge">ContentEditable Div</span>
+                    <label>What are your key technical skills?</label>
+                    <div
+                        contenteditable="true"
+                        data-placeholder="List your key technical skills..."
+                        role="textbox"
+                        aria-label="What are your key technical skills?"
+                    ></div>
+                </div>
+            </div>
+
+            <div class="side-by-side">
+                <div class="question-group">
+                    <span class="field-type-badge">Standard Input</span>
+                    <label for="input-availability">When can you start?</label>
+                    <input
+                        type="text"
+                        id="input-availability"
+                        placeholder="e.g., 2 weeks notice"
+                        aria-label="When can you start?"
+                    />
+                </div>
+
+                <div class="question-group">
+                    <span class="field-type-badge">ContentEditable Div</span>
+                    <label>When can you start?</label>
+                    <div
+                        contenteditable="true"
+                        data-placeholder="e.g., 2 weeks notice"
+                        role="textbox"
+                        aria-label="When can you start?"
+                    ></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Additional Test Cases -->
+        <div class="comparison-section">
+            <h2>Edge Cases</h2>
+
+            <div class="question-group">
+                <span class="field-type-badge">ContentEditable - No Placeholder</span>
+                <label for="ce-no-placeholder">Describe your leadership experience</label>
+                <div
+                    id="ce-no-placeholder"
+                    contenteditable="true"
+                    role="textbox"
+                    aria-label="Describe your leadership experience"
+                ></div>
+                <p class="field-description">✨ No placeholder - should still detect question from label</p>
+            </div>
+
+            <div class="question-group">
+                <span class="field-type-badge">ContentEditable - Aria Only</span>
+                <div
+                    contenteditable="true"
+                    aria-label="What are your salary expectations?"
+                    style="margin-top: 8px;"
+                ></div>
+                <p class="field-description">✨ No label, only aria-label attribute</p>
+            </div>
+
+            <div class="question-group">
+                <span class="field-type-badge">Standard Textarea</span>
+                <label for="standard-cover">Why should we hire you?</label>
+                <textarea
+                    id="standard-cover"
+                    placeholder="Explain why we should hire you..."
+                ></textarea>
+                <p class="field-description">✅ Standard textarea for comparison</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Log clicks for debugging
+        document.addEventListener('contextmenu', (e) => {
+            if (e.target.matches('[contenteditable="true"], input, textarea')) {
+                console.log('Right-click detected on:', e.target.tagName, {
+                    contenteditable: e.target.isContentEditable,
+                    ariaLabel: e.target.getAttribute('aria-label'),
+                    placeholder: e.target.placeholder || e.target.getAttribute('data-placeholder'),
+                    role: e.target.getAttribute('role')
+                });
+            }
+        });
+
+        // Track focus for debugging
+        document.addEventListener('focus', (e) => {
+            if (e.target.matches('[contenteditable="true"], input, textarea')) {
+                console.log('Focus on:', e.target.tagName, e.target.getAttribute('aria-label') || 'no label');
+            }
+        }, true);
+    </script>
+</body>
+</html>

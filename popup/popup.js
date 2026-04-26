@@ -86,6 +86,10 @@ document.addEventListener('DOMContentLoaded', () => {
   loadHistory();
   loadTheme();
   loadApiKey();
+  loadResumeStatus();
+  setupResumeUpload();
+  setupRealtimeValidation();
+  updateProfileCompleteness();
 });
 
 // Event listeners
@@ -810,7 +814,7 @@ async function generateCoverLetter() {
           return;
         }
 
-        const { jobDescription, companyName, jobTitle } = response.data;
+        const { jobDescription, companyName, jobTitle } = response.data || {};
 
         // Update loading message
         generateCoverLetterBtn.innerHTML = '<span class="btn-spinner">✨</span> Generating cover letter...';
@@ -1216,8 +1220,142 @@ function updateProfileCompleteness() {
   }
 }
 
-// Initialize validation when form is shown
-document.addEventListener('DOMContentLoaded', () => {
-  setupRealtimeValidation();
-  updateProfileCompleteness();
-});
+// (setupRealtimeValidation and updateProfileCompleteness are called in the main DOMContentLoaded listener above)
+// ===== RESUME UPLOAD FUNCTIONS =====
+// Append this block to the bottom of popup.js
+
+// Configure PDF.js worker
+if (typeof pdfjsLib !== 'undefined') {
+  pdfjsLib.GlobalWorkerOptions.workerSrc = chrome.runtime.getURL('lib/pdf.worker.min.js');
+}
+
+// Load resume status on popup open
+async function loadResumeStatus() {
+  try {
+    const result = await chrome.storage.local.get(['resumeText', 'resumeFilename']);
+    if (result.resumeText && result.resumeFilename) {
+      showResumeLoaded(result.resumeFilename);
+    }
+  } catch (error) {
+    console.error('Error loading resume status:', error);
+  }
+}
+
+// Show resume loaded state
+function showResumeLoaded(filename) {
+  document.getElementById('resumeDropZone').classList.add('hidden');
+  document.getElementById('resumeProcessing').classList.add('hidden');
+  const statusEl = document.getElementById('resumeStatus');
+  statusEl.classList.remove('hidden');
+  document.getElementById('resumeFilename').textContent = filename;
+}
+
+// Show resume upload area
+function showResumeUploadArea() {
+  document.getElementById('resumeStatus').classList.add('hidden');
+  document.getElementById('resumeProcessing').classList.add('hidden');
+  document.getElementById('resumeDropZone').classList.remove('hidden');
+}
+
+// Extract text from PDF using PDF.js
+async function extractTextFromPDF(file) {
+  if (typeof pdfjsLib === 'undefined') {
+    throw new Error('PDF.js not loaded. Check your internet connection.');
+  }
+
+  const arrayBuffer = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+
+  let fullText = '';
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const textContent = await page.getTextContent();
+    const pageText = textContent.items
+      .map(item => item.str)
+      .join(' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    fullText += pageText + '\n';
+  }
+
+  return fullText.trim();
+}
+
+// Handle resume file selection
+async function handleResumeUpload(file) {
+  if (!file || file.type !== 'application/pdf') {
+    showMessage('Please upload a PDF file', 'error');
+    return;
+  }
+
+  if (file.size > 5 * 1024 * 1024) {
+    showMessage('PDF must be under 5MB', 'error');
+    return;
+  }
+
+  // Show processing state
+  document.getElementById('resumeDropZone').classList.add('hidden');
+  document.getElementById('resumeProcessing').classList.remove('hidden');
+
+  try {
+    const resumeText = await extractTextFromPDF(file);
+
+    if (!resumeText || resumeText.length < 50) {
+      throw new Error('Could not extract text. Is this a scanned/image PDF?');
+    }
+
+    // Store in local storage (up to 5MB — plenty for resume text)
+    await chrome.storage.local.set({
+      resumeText: resumeText,
+      resumeFilename: file.name
+    });
+
+    showResumeLoaded(file.name);
+    showMessage(`✓ Resume uploaded — ${resumeText.length.toLocaleString()} characters extracted`, 'success');
+
+  } catch (error) {
+    console.error('Error processing PDF:', error);
+    showResumeUploadArea();
+    showMessage('Error reading PDF: ' + error.message, 'error');
+  }
+}
+
+// Setup resume upload event listeners
+function setupResumeUpload() {
+  const dropZone = document.getElementById('resumeDropZone');
+  const fileInput = document.getElementById('resumeFileInput');
+  const clearBtn = document.getElementById('resumeClearBtn');
+
+  // Click to open file picker
+  dropZone.addEventListener('click', () => fileInput.click());
+
+  // File selected via picker
+  fileInput.addEventListener('change', (e) => {
+    if (e.target.files[0]) handleResumeUpload(e.target.files[0]);
+  });
+
+  // Drag and drop
+  dropZone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    dropZone.classList.add('drag-over');
+  });
+
+  dropZone.addEventListener('dragleave', () => {
+    dropZone.classList.remove('drag-over');
+  });
+
+  dropZone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropZone.classList.remove('drag-over');
+    const file = e.dataTransfer.files[0];
+    if (file) handleResumeUpload(file);
+  });
+
+  // Clear resume
+  clearBtn.addEventListener('click', async () => {
+    await chrome.storage.local.remove(['resumeText', 'resumeFilename']);
+    showResumeUploadArea();
+    showMessage('Resume removed', 'success');
+  });
+}
+

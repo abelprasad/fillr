@@ -9,29 +9,35 @@ chrome.runtime.onInstalled.addListener((details) => {
   }
 
   // Create context menu for AI question answering
+  // Using both 'editable' and 'selection' to support more input types
   chrome.contextMenus.create({
     id: 'fillr-up',
     title: 'Fillr Up ✨',
-    contexts: ['editable']
+    contexts: ['editable', 'selection']
   });
 });
 
 // Handle context menu clicks
 chrome.contextMenus.onClicked.addListener((info, tab) => {
   if (info.menuItemId === 'fillr-up') {
-    console.log('🔵 Context menu clicked, sending message to tab:', tab.id);
+    console.log('🔵 Context menu clicked, sending message to tab:', tab.id, 'frame:', info.frameId);
+    console.log('🔵 Selection text:', info.selectionText);
+    console.log('🔵 Page URL:', info.pageUrl);
 
     // Send message to content script to generate AI answer
     chrome.tabs.sendMessage(
       tab.id,
       {
         action: 'fillrUp',
-        frameId: info.frameId
+        frameId: info.frameId,
+        selectionText: info.selectionText
       },
       (response) => {
         // Check for errors
         if (chrome.runtime.lastError) {
           console.error('❌ Error sending message:', chrome.runtime.lastError.message);
+          console.error('💡 This usually means the content script is not loaded on this page.');
+          console.error('💡 Try refreshing the page or check if the page allows extensions.');
           return;
         }
 
